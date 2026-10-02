@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Segel Digital — tanda tangan elektronik di dalam PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --ink:#141a22; --ink-soft:#4a5565; --paper:#eef1f3; --card:#ffffff;
+  --line:#d7dde3; --line-strong:#b9c2cc; --seal:#9a5b2e; --seal-deep:#7c4620;
+  --ok:#2f7d4f; --ok-bg:#e7f3ec; --bad:#b3372f; --bad-bg:#f8e8e6; --warn:#8a6414; --warn-bg:#f7f0dd;
+  --shadow:0 1px 0 rgba(20,26,34,.04), 0 12px 30px -18px rgba(20,26,34,.35);
+  --font:"Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ink:#e9edf2; --ink-soft:#a4b0be; --paper:#0e1319; --card:#151c25; --line:#26313d; --line-strong:#3a4756;
+    --seal:#c98a52; --seal-deep:#a86e3d; --ok:#62cf8e; --ok-bg:#12281c; --bad:#f0857c; --bad-bg:#2e1614; --warn:#dcc073; --warn-bg:#2a2412;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --ink:#e9edf2; --ink-soft:#a4b0be; --paper:#0e1319; --card:#151c25; --line:#26313d; --line-strong:#3a4756;
+  --seal:#c98a52; --seal-deep:#a86e3d; --ok:#62cf8e; --ok-bg:#12281c; --bad:#f0857c; --bad-bg:#2e1614; --warn:#dcc073; --warn-bg:#2a2412;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0; font-family:var(--font); color:var(--ink); background:var(--paper); line-height:1.5; -webkit-font-smoothing:antialiased}
+.wrap{max-width:1040px; margin:0 auto; padding:28px 20px 72px}
+.brand{display:flex; align-items:center; gap:14px}
+.seal{width:44px;height:44px;border-radius:50%;flex:none;border:2px solid var(--seal);color:var(--seal);display:grid;place-items:center;font-weight:700;font-size:17px;box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--seal) 16%,transparent)}
+h1{font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;margin:0;font-weight:700}
+.sub{color:var(--ink-soft);margin:2px 0 0;font-size:14.5px;max-width:64ch}
+
+.tabs{display:flex;gap:4px;margin:26px 0 18px;border-bottom:1px solid var(--line)}
+.tab{font:inherit;font-size:15px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
+.tab:focus-visible{outline:2px solid var(--seal);outline-offset:2px;border-radius:6px}
+.panel[hidden]{display:none}
+
+.grid{display:grid;grid-template-columns:1fr;gap:18px}
+@media(min-width:880px){.grid{grid-template-columns:.9fr 1.1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.pad{padding:20px}
+.card h2{font-size:16px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
+.card .lead{font-size:13.5px;color:var(--ink-soft);margin:0 0 14px}
+.step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--seal);color:#fff;font-size:12px;font-weight:700;margin-right:8px;vertical-align:1px}
+
+.field{margin-top:12px}
+label.l{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+input[type=text],input[type=email],input[type=password],select,textarea{width:100%;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px}
+textarea{resize:vertical;min-height:62px}
+input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--seal) 45%,transparent);outline-offset:1px;border-color:var(--seal)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hint{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+
+.btn{font:inherit;font-weight:600;font-size:14px;padding:10px 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);cursor:pointer}
+.btn:hover{border-color:var(--ink-soft)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:linear-gradient(180deg,var(--seal),var(--seal-deep));color:#fff;border:none}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.big{width:100%;padding:14px;font-size:15.5px;margin-top:18px}
+.btn.link{border:none;background:none;padding:4px 0;color:var(--seal);font-weight:600}
+.btn:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+.idcard{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;background:color-mix(in srgb,var(--seal) 5%,var(--card))}
+.idcard .av{width:40px;height:40px;border-radius:50%;background:var(--seal);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.idcard .nm{font-weight:700}
+.idcard .meta{font-size:12.5px;color:var(--ink-soft);word-break:break-all}
+.fp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-soft);word-break:break-all;margin-top:4px}
+
+.drop{border:1.5px dashed var(--line-strong);border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;background:color-mix(in srgb,var(--paper) 45%,transparent);transition:border-color .15s,background .15s}
+.drop:hover,.drop.hot{border-color:var(--seal);background:color-mix(in srgb,var(--seal) 6%,transparent)}
+.drop:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
+.drop .big{font-weight:600;font-size:15.5px}
+.drop .hint{margin-top:2px}
+.chip{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.chip .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .sz{color:var(--ink-soft);flex:none;margin-left:auto}
+
+.check{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-top:10px;cursor:pointer}
+.check input{margin-top:3px;accent-color:var(--seal);width:16px;height:16px;flex:none}
+.check .t{display:block;font-weight:600;font-size:14px}
+.check .d{display:block;color:var(--ink-soft);font-size:12.5px;margin-top:1px}
+.sect{margin:20px 0 2px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--seal)}
+.subopts{margin:6px 0 0 38px}
+.mini{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
+.mini input{accent-color:var(--seal);width:16px;height:16px}
+.pwbox{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;word-break:break-all;color:var(--ink);user-select:all}
+.pos{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.pos label{display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.pos input{accent-color:var(--seal)}
+
+.msg{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:13.5px}
+.msg.ok{background:var(--ok-bg);color:var(--ok)}
+.msg.bad{background:var(--bad-bg);color:var(--bad)}
+.msg.warn{background:var(--warn-bg);color:var(--warn)}
+.msg b{font-weight:700}
+.msg[hidden]{display:none}
+
+/* hasil verifikasi */
+.verdict{border-radius:14px;padding:18px;border:1px solid var(--line);margin-top:14px}
+.verdict .h{display:flex;align-items:center;gap:12px}
+.verdict .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:20px;flex:none;color:#fff}
+.verdict .tt{font-size:17px;font-weight:700;line-height:1.25}
+.verdict .ds{font-size:13.5px;color:var(--ink-soft);margin-top:2px}
+.verdict.ok{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 35%,transparent)} .verdict.ok .ic{background:var(--ok)}
+.verdict.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 35%,transparent)} .verdict.bad .ic{background:var(--bad)}
+.verdict.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 35%,transparent)} .verdict.warn .ic{background:var(--warn)}
+dl.kv{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 14px;margin:14px 0 0;font-size:13.5px}
+dl.kv dt{color:var(--ink-soft)} dl.kv dd{margin:0;word-break:break-word}
+.explain{margin-top:18px;font-size:13.5px;color:var(--ink-soft)}
+.explain p{margin:0 0 8px}
+.explain b{color:var(--ink)}
+.empty{color:var(--ink-soft);font-size:14px;padding:30px 10px;text-align:center}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+.note{margin-top:22px;border:1px solid var(--line);border-left:3px solid var(--seal);border-radius:10px;padding:14px 16px;background:var(--card);font-size:13px;color:var(--ink-soft)}
+.note p{margin:0 0 6px} .note p:last-child{margin:0} .note b{color:var(--ink)}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div class="seal">§</div>
+    <div>
+      <h1>Segel Digital</h1>
+      <p class="sub">Tanamkan tanda tangan elektronik, enkripsi AES-256, dan batasan izin di dalam PDF — tanpa watermark. Setiap perubahan sekecil apa pun membuat tanda tangannya tidak sah. Semua diproses di perangkat Anda.</p>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tabSign" aria-selected="true" aria-controls="pSign">Tanda tangani</button>
+    <button class="tab" role="tab" id="tabVerify" aria-selected="false" aria-controls="pVerify">Periksa keaslian</button>
+  </div>
+
+  <!-- ================= TANDA TANGANI ================= -->
+  <section class="panel" id="pSign" role="tabpanel" aria-labelledby="tabSign">
+    <div class="grid">
+      <!-- identitas -->
+      <div class="card pad" id="idPanel">
+        <h2><span class="step">1</span>Identitas penanda tangan</h2>
+        <p class="lead">Sertifikat digital milik Anda. Buat sekali, lalu pakai untuk semua dokumen.</p>
+
+        <div id="idNone">
+          <div class="field"><label class="l" for="nName">Nama lengkap</label><input id="nName" type="text" autocomplete="name" value="Dr. Joseph Teguh Santoso, M.Kom"></div>
+          <div class="field"><label class="l" for="nOrg">Instansi / perusahaan <span style="font-weight:400;color:var(--ink-soft)">(opsional)</span></label><input id="nOrg" type="text" autocomplete="organization" value="Universitas STEKOM"></div>
+          <div class="field"><label class="l" for="nMail">Email <span style="font-weight:400;color:var(--ink-soft)">(opsional)</span></label><input id="nMail" type="email" autocomplete="email"></div>
+          <div class="field row2">
+            <div><label class="l" for="nPw">Kata sandi sertifikat</label><input id="nPw" type="password" autocomplete="new-password"></div>
+            <div><label class="l" for="nPw2">Ulangi</label><input id="nPw2" type="password" autocomplete="new-password"></div>
+          </div>
+          <p class="hint">Kata sandi melindungi kunci tanda tangan Anda. Tidak bisa dipulihkan bila lupa.</p>
+          <div class="btns">
+            <button class="btn primary" id="btnCreate">Buat sertifikat</button>
+            <button class="btn" id="btnImport">Pakai file sertifikat (.p12 / .pfx)</button>
+            <input type="file" id="fImport" accept=".p12,.pfx,.zip,application/x-pkcs12,application/zip">
+          </div>
+          <div class="msg" id="idMsg" hidden></div>
+        </div>
+
+        <div id="idHave" hidden>
+          <div class="idcard">
+            <div class="av" id="idAv">?</div>
+            <div style="min-width:0">
+              <div class="nm" id="idName"></div>
+              <div class="meta" id="idMeta"></div>
+              <div class="fp" id="idFp"></div>
+            </div>
+          </div>
+          <div id="unlockBox">
+            <div class="field"><label class="l" for="uPw">Kata sandi sertifikat</label><input id="uPw" type="password" autocomplete="current-password"></div>
+            <div class="btns"><button class="btn primary" id="btnUnlock">Buka kunci</button></div>
+          </div>
+          <div class="msg ok" id="unlocked" hidden><b>Siap menandatangani.</b> Kunci terbuka selama halaman ini terbuka.</div>
+          <div class="btns">
+            <button class="btn" id="btnExport">Unduh cadangan sertifikat</button>
+            <button class="btn link" id="btnForget">Ganti identitas</button>
+          </div>
+          <p class="hint">Simpan cadangan (.zip) di tempat aman. Berisi file .p12 untuk dipakai lagi di perangkat lain, dan file .cer yang bisa Anda bagikan agar penerima bisa mempercayai tanda tangan Anda.</p>
+          <div class="msg" id="idMsg2" hidden></div>
+        </div>
+      </div>
+
+      <!-- dokumen -->
+      <div class="card pad">
+        <h2><span class="step">2</span>Dokumen</h2>
+        <p class="lead">PDF yang akan ditandatangani.</p>
+        <div class="drop" id="sDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk ditandatangani">
+          <div class="big">Letakkan PDF di sini</div>
+          <div class="hint">atau klik untuk memilih</div>
+        </div>
+        <input type="file" id="sFile" accept="application/pdf,.pdf">
+        <div class="chip" id="sChip" hidden><span class="nm" id="sName"></span><span class="sz" id="sSize"></span></div>
+
+        <div class="field row2">
+          <div><label class="l" for="oJab">Jabatan</label><input id="oJab" type="text" value="Rektor"></div>
+          <div><label class="l" for="oLoc">Lokasi</label><input id="oLoc" type="text" value="Semarang"></div>
+        </div>
+        <div class="field"><label class="l" for="oReason">Alasan</label><input id="oReason" type="text" value="Menyetujui dan mengesahkan dokumen ini"></div>
+
+        <div class="sect">Proteksi</div>
+
+        <label class="check"><input type="checkbox" id="oCertify" checked>
+          <span><span class="t">Kunci dokumen dari perubahan</span><span class="d">Adobe Reader menonaktifkan alat edit dan menandai dokumen "tersertifikasi, tidak ada perubahan diizinkan".</span></span></label>
+
+        <label class="check"><input type="checkbox" id="oEncrypt" checked>
+          <span><span class="t">Enkripsi AES-256 + batasan izin</span><span class="d">Seperti "Restrict Editing": edit, salin teks, ekstrak, anotasi, isi formulir, dan susun ulang halaman ditolak. Kunci pemiliknya dibuat acak dan panjang.</span></span></label>
+        <div id="encOpts" class="subopts">
+          <label class="mini"><input type="checkbox" id="oPrint" checked> Izinkan mencetak</label>
+          <div class="field"><label class="l" for="oOpenPw">Kata sandi untuk membuka <span style="font-weight:400;color:var(--ink-soft)">(opsional — kosongkan agar siapa pun bisa membaca)</span></label><input id="oOpenPw" type="password" autocomplete="new-password"></div>
+        </div>
+
+        <label class="check"><input type="checkbox" id="oScan" checked>
+          <span><span class="t">Ubah halaman jadi gambar (seperti hasil pindai)</span><span class="d">Teks asli dihapus dan diganti gambar halaman yang tampak normal dan jelas. "Convert to Word" dan editor online hanya mendapat gambar, bukan teks yang bisa diedit. Aktifkan anti-OCR di bawah hanya bila Anda rela halaman tampak bergaris.</span></span></label>
+        <div id="scanOpts" class="subopts">
+          <label class="l" for="oScanQ">Resolusi gambar</label>
+          <select id="oScanQ">
+            <option value="2.0">150 dpi — file ringan</option>
+            <option value="2.78" selected>200 dpi — tajam (disarankan)</option>
+            <option value="4.17">300 dpi — kualitas cetak, file besar</option>
+          </select>
+          <label class="mini" style="margin-top:10px"><input type="checkbox" id="oAntiOcr"> Pola pengaman anti-OCR <span style="font-weight:400;color:var(--ink-soft)">(membuat halaman bergaris)</span></label>
+          <div class="hint" style="margin-left:24px">Garis halus yang memotong huruf: mesin OCR gagal membaca (teruji &lt;1% kata terbaca), mata manusia tetap membaca normal.</div>
+          <div id="antiOcrOpts" style="margin-left:24px;margin-top:6px;display:none">
+            <select id="oAntiStr">
+              <option value="kuat">Kuat — OCR gagal total (&lt;4% kata), halaman tampak bergaris</option>
+              <option value="sedang" selected>Sedang — sedikit bergaris, OCR bisa dipulihkan sebagian</option>
+              <option value="ringan">Ringan — nyaris tak terlihat, hanya kosmetik</option>
+            </select>
+            <div class="hint" id="antiWarn" style="margin-top:6px"></div>
+          </div>
+        </div>
+
+        <div class="sect">Tampilan</div>
+        <label class="check"><input type="checkbox" id="oStamp" checked>
+          <span><span class="t">Tampilkan cap tanda tangan + kode QR</span><span class="d">Kotak kecil berisi nama, waktu, dan QR, seperti pada surat dinas.</span></span></label>
+        <div id="stampOpts">
+          <div class="field row2">
+            <div><label class="l" for="oPage">Halaman</label>
+              <select id="oPage"><option value="last">Halaman terakhir</option><option value="first">Halaman pertama</option></select></div>
+            <div><label class="l">Posisi</label>
+              <div class="pos" role="radiogroup" aria-label="Posisi cap">
+                <label><input type="radio" name="pos" value="tl">Kiri atas</label>
+                <label><input type="radio" name="pos" value="tr">Kanan atas</label>
+                <label><input type="radio" name="pos" value="bl">Kiri bawah</label>
+                <label><input type="radio" name="pos" value="br" checked>Kanan bawah</label>
+              </div></div>
+          </div>
+        </div>
+
+        <label class="check"><input type="checkbox" id="oFooter" checked>
+          <span><span class="t">Catatan tanda tangan di kaki setiap halaman</span><span class="d">Tulisan kecil di bawah halaman, seperti keterangan pada contoh dokumen resmi.</span></span></label>
+        <div class="field" id="footerWrap"><textarea id="oFooterText" rows="4"></textarea></div>
+        <label class="mini" style="margin-top:8px"><input type="checkbox" id="oProtect" checked> Sertakan pernyataan larangan menyalin/OCR + dasar hukum</label>
+
+        <button class="btn primary big" id="btnSign">Tanda tangani dokumen</button>
+        <div class="msg" id="signMsg" hidden></div>
+        <div class="btns" id="dlWrap" hidden><button class="btn primary" id="btnDl">Unduh PDF bertanda tangan</button></div>
+      </div>
+    </div>
+
+    <div class="note">
+      <p><b>Cara kerjanya.</b> Tanda tangan menghitung sidik matematis dari seluruh isi PDF lalu menguncinya dengan kunci pribadi Anda. Siapa pun bisa membuka dan membaca dokumennya, tapi bila ada satu huruf diubah, sidiknya tidak lagi cocok dan Adobe Reader maupun tab "Periksa keaslian" akan menyatakannya rusak.</p>
+      <p><b>Status hukumnya.</b> Sertifikat yang dibuat di sini adalah tanda tangan elektronik <b>tidak tersertifikasi</b> — sah menurut UU ITE, tapi keasliannya harus dibuktikan bila dipersoalkan. Karena tidak diterbitkan lembaga resmi, Adobe akan menampilkan "identitas penanda tangan tidak dikenal" sampai penerima mempercayai file .cer Anda. Untuk kekuatan hukum penuh seperti surat dinas BSrE, gunakan sertifikat dari PSrE resmi (misalnya Privy, Peruri, VIDA); bila PSrE memberi Anda file .p12, file itu bisa dipakai langsung di sini.</p>
+    </div>
+  </section>
+
+  <!-- ================= PERIKSA ================= -->
+  <section class="panel" id="pVerify" role="tabpanel" aria-labelledby="tabVerify" hidden>
+    <div class="card pad">
+      <h2>Periksa keaslian PDF</h2>
+      <p class="lead">Cek apakah tanda tangan di dalam PDF masih sah dan isinya belum diubah sejak ditandatangani.</p>
+      <div class="drop" id="vDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk diperiksa">
+        <div class="big">Letakkan PDF di sini</div>
+        <div class="hint">atau klik untuk memilih</div>
+      </div>
+      <input type="file" id="vFile" accept="application/pdf,.pdf">
+      <div id="vOut"><div class="empty">Belum ada dokumen yang diperiksa.</div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* Inti Segel Digital — dipakai di browser (global PDFLib, forge, qrcode) dan di Node untuk uji. */
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory;
+  else root.SegelCore = factory(root.PDFLib, root.forge, root.qrcode);
+})(typeof self !== "undefined" ? self : this, function (PDFLib, forge, qrcode) {
+  const { PDFDocument, PDFName, PDFNumber, PDFHexString, PDFString, PDFArray, PDFDict, StandardFonts, rgb } = PDFLib;
+  const SIG_BYTES = 16384; // ruang untuk PKCS#7 (hex = 2x)
+
+  /* ---------- util ---------- */
+  function u8ToBinary(u8) {
+    let s = "", CH = 0x8000;
+    for (let i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+    return s;
+  }
+  function binaryToU8(s) { const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 255; return u; }
+  function pdfDate(d) {
+    const p = n => String(n).padStart(2, "0");
+    const off = -d.getTimezoneOffset(), sign = off >= 0 ? "+" : "-", a = Math.abs(off);
+    return `D:${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}${sign}${p(Math.floor(a / 60))}'${p(a % 60)}'`;
+  }
+  function fingerprint(cert) {
+    const der = forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes();
+    const md = forge.md.sha256.create(); md.update(der);
+    return md.digest().toHex().toUpperCase().match(/.{2}/g).join(":");
+  }
+  function dec(a) { return a ? String(a.value) : ""; }
+  // nilai UTF8String hasil parse masih berupa byte mentah; ubah jadi teks agar tidak tersandi ganda saat dipakai ulang
+  function normalizeCert(cert) {
+    if (!cert || cert.__norm) return cert;
+    for (const dn of [cert.subject, cert.issuer]) for (const a of dn.attributes)
+      if (a.valueTagClass === forge.asn1.Type.UTF8) { try { a.value = forge.util.decodeUtf8(a.value); } catch (e) {} }
+    cert.__norm = true; return cert;
+  }
+  function cn(cert) { return dec(cert.subject.getField("CN")) || "(tanpa nama)"; }
+  function field(cert, s) {
+    const at = cert.subject.attributes.find(x => x.shortName === s || x.name === s);
+    return dec(at);
+  }
+
+  /* ---------- identitas ---------- */
+  async function createIdentity({ name, org, email, title, password, years = 5 }, subtle) {
+    const kp = await subtle.generateKey(
+      { name: "RSASSA-PKCS1-v1_5", modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: "SHA-256" },
+      true, ["sign", "verify"]);
+    const pk8 = new Uint8Array(await subtle.exportKey("pkcs8", kp.privateKey));
+    const privateKey = forge.pki.privateKeyFromAsn1(forge.asn1.fromDer(u8ToBinary(pk8)));
+    const publicKey = forge.pki.setRsaPublicKey(privateKey.n, privateKey.e);
+
+    const cert = forge.pki.createCertificate();
+    cert.publicKey = publicKey;
+    cert.serialNumber = "01" + forge.util.bytesToHex(forge.random.getBytesSync(15));
+    const now = new Date();
+    cert.validity.notBefore = new Date(now.getTime() - 60000);
+    cert.validity.notAfter = new Date(now); cert.validity.notAfter.setFullYear(now.getFullYear() + years);
+    const U8 = forge.asn1.Type.UTF8, IA5 = forge.asn1.Type.IA5STRING;
+    const attrs = [{ name: "countryName", value: "ID" }];
+    if (org) attrs.push({ name: "organizationName", value: org, valueTagClass: U8 });
+    if (title) attrs.push({ name: "title", value: title, valueTagClass: U8 });
+    attrs.push({ name: "commonName", value: name, valueTagClass: U8 });
+    if (email) attrs.push({ name: "emailAddress", value: email, valueTagClass: IA5 });
+    cert.setSubject(attrs); cert.setIssuer(attrs);
+    cert.setExtensions([
+      { name: "basicConstraints", cA: false },
+      { name: "keyUsage", digitalSignature: true, nonRepudiation: true },
+      { name: "extKeyUsage", emailProtection: true },
+      { name: "subjectKeyIdentifier" }
+    ]);
+    cert.sign(privateKey, forge.md.sha256.create());
+    const p12 = forge.pkcs12.toPkcs12Asn1(privateKey, [cert], password, { algorithm: "3des", friendlyName: name });
+    const p12Der = forge.asn1.toDer(p12).getBytes();
+    return { p12Der, cert, privateKey };
+  }
+
+  function openIdentity(p12Der, password) {
+    const p12 = forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(p12Der), false, password);
+    const keyBags = (p12.getBags({ bagType: forge.pki.oids.pkcs8ShroudedKeyBag })[forge.pki.oids.pkcs8ShroudedKeyBag] || [])
+      .concat(p12.getBags({ bagType: forge.pki.oids.keyBag })[forge.pki.oids.keyBag] || []);
+    const certBags = p12.getBags({ bagType: forge.pki.oids.certBag })[forge.pki.oids.certBag] || [];
+    if (!keyBags.length || !certBags.length) throw new Error("File sertifikat tidak berisi kunci atau sertifikat.");
+    const privateKey = keyBags[0].key;
+    if (!privateKey || !privateKey.n) throw new Error("Hanya kunci RSA yang didukung.");
+    // pilih sertifikat yang cocok dengan kunci
+    let cert = certBags.map(b => b.cert).find(c => c && c.publicKey.n && c.publicKey.n.equals(privateKey.n)) || certBags[0].cert;
+    const chain = certBags.map(b => b.cert).filter(c => c && c !== cert);
+    normalizeCert(cert); chain.forEach(normalizeCert);
+    return { privateKey, cert, chain };
+  }
+
+  /* ---------- tanam tanda tangan ---------- */
+  function hasSignature(bytes) {
+    const s = u8ToBinary(bytes.subarray(0, Math.min(bytes.length, 50 * 1024 * 1024)));
+    return /\/ByteRange\s*\[/.test(s) || /\/Type\s*\/Sig\b/.test(s);
+  }
+
+  async function signPdf(inputBytes, id, opt) {
+    const {
+      reason = "Saya menyetujui dokumen ini", location = "", contact = "",
+      certify = true, footer = "", stamp = true, stampPage = "last", stampPos = "br",
+      jabatan = "", encrypt = null   // encrypt: { userPassword, ownerPassword, allowPrint, subtle }
+    } = opt || {};
+    const now = opt.date || new Date();
+    const pdf = await PDFDocument.load(inputBytes, { updateMetadata: false });
+    const pages = pdf.getPages();
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const signer = cn(id.cert);
+    const fp = fingerprint(id.cert);
+    const docId = forge.util.bytesToHex(forge.random.getBytesSync(8)).toUpperCase();
+
+    // 1) teks kaki halaman di tiap halaman (bagian dari isi yang ditandatangani)
+    if (footer) {
+      for (const pg of pages) {
+        const { width } = pg.getSize(); const size = 7;
+        const lines = wrap(footer, font, size, width - 80);
+        lines.forEach((ln, i) => {
+          const w = font.widthOfTextAtSize(ln, size);
+          pg.drawText(ln, { x: (width - w) / 2, y: 24 + (lines.length - 1 - i) * (size + 2), size, font, color: rgb(0.25, 0.25, 0.25) });
+        });
+      }
+    }
+
+    // 2) cap tanda tangan terlihat + QR
+    let rect = [0, 0, 0, 0], page = stampPage === "first" ? pages[0] : pages[pages.length - 1];
+    if (stamp) {
+      const { width, height } = page.getSize();
+      const W = 244, H = jabatan ? 86 : 78, M = 36;
+      const x = stampPos.endsWith("l") ? M : width - W - M;
+      const y = stampPos.startsWith("t") ? height - H - M : M + 30;
+      rect = [x, y, x + W, y + H];
+      page.drawRectangle({ x, y, width: W, height: H, borderColor: rgb(0.2, 0.25, 0.32), borderWidth: 0.8, color: rgb(1, 1, 1), opacity: 0.96, borderOpacity: 1 });
+      // QR
+      const qrText = `SEGEL DIGITAL\nPenanda tangan: ${signer}\nWaktu: ${now.toISOString()}\nID dokumen: ${docId}\nSidik sertifikat SHA-256: ${fp}`;
+      const q = qrcode(0, "M"); q.addData(unescape(encodeURIComponent(qrText))); q.make();
+      const n = q.getModuleCount(), qs = H - 12, cell = qs / n, qx = x + 6, qy = y + 6;
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
+        if (q.isDark(r, c)) page.drawRectangle({ x: qx + c * cell, y: qy + qs - (r + 1) * cell, width: cell + 0.02, height: cell + 0.02, color: rgb(0, 0, 0) });
+      const tx = qx + qs + 8, maxW = x + W - tx - 5;
+      let ty = y + H - 13;
+      const line = (t, f, s, col) => { for (const l of wrap(t, f, s, maxW).slice(0, 2)) { page.drawText(l, { x: tx, y: ty, size: s, font: f, color: col || rgb(0.12, 0.14, 0.18) }); ty -= s + 2.5; } };
+      line("Ditandatangani secara elektronik", font, 6.2, rgb(0.35, 0.38, 0.42));
+      line(signer, bold, 8.2);
+      if (jabatan) line(jabatan, font, 6.6);
+      const org = field(id.cert, "O"); if (org) line(org, font, 6.6);
+      line(tanggalID(now), font, 6.4, rgb(0.35, 0.38, 0.42));
+      line("ID " + docId, font, 6.0, rgb(0.35, 0.38, 0.42));
+    }
+
+    // 3) kamus tanda tangan dengan placeholder
+    const ctx = pdf.context;
+    const sigDict = ctx.obj({
+      Type: "Sig", Filter: "Adobe.PPKLite", SubFilter: "adbe.pkcs7.detached",
+      ByteRange: [0, 9999999999, 9999999999, 9999999999],
+      Contents: PDFHexString.of("0".repeat(SIG_BYTES * 2)),
+      M: PDFString.of(pdfDate(now)),
+      Name: PDFHexString.fromText(signer),
+      Reason: PDFHexString.fromText(reason),
+      Prop_Build: { Filter: { Name: "Adobe.PPKLite" }, App: { Name: "SegelDigital" } }
+    });
+    if (location) sigDict.set(PDFName.of("Location"), PDFHexString.fromText(location));
+    if (contact) sigDict.set(PDFName.of("ContactInfo"), PDFHexString.fromText(contact));
+    if (certify) {
+      sigDict.set(PDFName.of("Reference"), ctx.obj([{
+        Type: "SigRef", TransformMethod: "DocMDP", DigestMethod: "SHA256",
+        TransformParams: { Type: "TransformParams", P: 1, V: "1.2" }
+      }]));
+    }
+    const sigRef = ctx.register(sigDict);
+
+    const apStream = ctx.stream("", { Type: "XObject", Subtype: "Form", BBox: [0, 0, rect[2] - rect[0], rect[3] - rect[1]], Resources: {} });
+    const apRef = ctx.register(apStream);
+    const widget = ctx.obj({
+      Type: "Annot", Subtype: "Widget", FT: "Sig", Rect: rect, V: sigRef,
+      T: PDFString.of("Segel-" + docId), F: 132, P: page.ref, AP: { N: apRef }
+    });
+    const widgetRef = ctx.register(widget);
+    let annots = page.node.lookup(PDFName.of("Annots"));
+    if (annots instanceof PDFArray) annots.push(widgetRef); else page.node.set(PDFName.of("Annots"), ctx.obj([widgetRef]));
+
+    let acro = pdf.catalog.lookup(PDFName.of("AcroForm"));
+    if (!acro) { acro = ctx.obj({ Fields: [] }); pdf.catalog.set(PDFName.of("AcroForm"), ctx.register(acro)); }
+    let fields = acro.lookup(PDFName.of("Fields"));
+    if (!(fields instanceof PDFArray)) { fields = ctx.obj([]); acro.set(PDFName.of("Fields"), fields); }
+    fields.push(widgetRef);
+    acro.set(PDFName.of("SigFlags"), PDFNumber.of(3));
+    if (certify) pdf.catalog.set(PDFName.of("Perms"), ctx.obj({ DocMDP: sigRef }));
+
+    pdf.setModificationDate(now); pdf.setProducer("Segel Digital");
+
+    // 4) enkripsi AES-256 + pembatasan izin (opsional)
+    await pdf.flush();
+    if (encrypt) await encryptDocument(pdf, sigDict, encrypt);
+
+    // 5) simpan, isi ByteRange, tanda tangani
+    let out = await pdf.save({ useObjectStreams: false, updateFieldAppearances: false });
+    let bin = u8ToBinary(out);
+    const brRe = /\/ByteRange\s*\[\s*0\s+9999999999\s+9999999999\s+9999999999\s*\]/;
+    const brM = brRe.exec(bin); if (!brM) throw new Error("Placeholder ByteRange tidak ditemukan.");
+    const placeholderHex = "<" + "0".repeat(SIG_BYTES * 2) + ">";
+    const cStart = bin.indexOf(placeholderHex, brM.index);
+    const cStart2 = cStart >= 0 ? cStart : bin.lastIndexOf(placeholderHex, brM.index);
+    if (cStart2 < 0) throw new Error("Placeholder Contents tidak ditemukan.");
+    const a = cStart2, b = cStart2 + placeholderHex.length, len = bin.length;
+    let br = `/ByteRange [0 ${a} ${b} ${len - b}]`;
+    if (br.length > brM[0].length) throw new Error("ByteRange terlalu panjang.");
+    br = br.padEnd(brM[0].length, " ");
+    bin = bin.slice(0, brM.index) + br + bin.slice(brM.index + brM[0].length);
+
+    const signedData = bin.slice(0, a) + bin.slice(b);
+    const p7 = forge.pkcs7.createSignedData();
+    p7.content = forge.util.createBuffer(signedData, "raw");
+    p7.addCertificate(id.cert);
+    (id.chain || []).forEach(c => p7.addCertificate(c));
+    p7.addSigner({
+      key: id.privateKey, certificate: id.cert, digestAlgorithm: forge.pki.oids.sha256,
+      authenticatedAttributes: [
+        { type: forge.pki.oids.contentType, value: forge.pki.oids.data },
+        { type: forge.pki.oids.messageDigest },
+        { type: forge.pki.oids.signingTime, value: now }
+      ]
+    });
+    p7.sign({ detached: true });
+    const der = forge.asn1.toDer(p7.toAsn1()).getBytes();
+    const hex = forge.util.bytesToHex(der).toUpperCase();
+    if (hex.length > SIG_BYTES * 2) throw new Error("Tanda tangan melebihi ruang yang disediakan.");
+    bin = bin.slice(0, a + 1) + hex.padEnd(SIG_BYTES * 2, "0") + bin.slice(b - 1);
+    return { bytes: binaryToU8(bin), docId, fingerprint: fp, signer, date: now };
+  }
+
+  /* ---------- enkripsi standar PDF 2.0 (AES-256, V5 R6) ---------- */
+  const B = forge.util;
+  function sha(name, data) { const m = forge.md[name].create(); m.update(data); return m.digest().getBytes(); }
+  function aesRaw(mode, key, iv, data) { // tanpa padding
+    const c = forge.cipher.createCipher(mode, key); c.start(iv ? { iv } : {}); c.update(B.createBuffer(data));
+    c.finish(() => true); return c.output.getBytes();
+  }
+  // Algorithm 2.B (ISO 32000-2)
+  function hash2B(pw, salt, udata) {
+    let K = sha("sha256", pw + salt + udata), round = 0, E;
+    while (true) {
+      const K1 = (pw + K + udata).repeat(64);
+      E = aesRaw("AES-CBC", K.slice(0, 16), K.slice(16, 32), K1);
+      let sum = 0; for (let i = 0; i < 16; i++) sum += E.charCodeAt(i);
+      K = sha(["sha256", "sha384", "sha512"][sum % 3], E);
+      round++;
+      if (round >= 64 && E.charCodeAt(E.length - 1) <= round - 32) break;
+    }
+    return K.slice(0, 32);
+  }
+  function pwBytes(p) { return forge.util.encodeUtf8(String(p || "").normalize("NFKC")).slice(0, 127); }
+
+  // Bit izin (1 = diizinkan). Selain cetak, semua ditolak.
+  function permissionValue(allowPrint) {
+    let P = 0xFFFFF0C0;               // bit 7-8 & 13-32 wajib 1
+    if (allowPrint) P |= (1 << 2) | (1 << 11); // bit 3 cetak, bit 12 cetak kualitas tinggi
+    return P | 0;                     // ke int32 bertanda
+  }
+
+  async function encryptDocument(pdf, sigDict, { userPassword = "", ownerPassword, allowPrint = true, subtle }) {
+    const ctx = pdf.context;
+    const up = pwBytes(userPassword), op = pwBytes(ownerPassword);
+    const fileKey = forge.random.getBytesSync(32);
+    const uVS = forge.random.getBytesSync(8), uKS = forge.random.getBytesSync(8);
+    const U = hash2B(up, uVS, "") + uVS + uKS;
+    const UE = aesRaw("AES-CBC", hash2B(up, uKS, ""), "\0".repeat(16), fileKey);
+    const oVS = forge.random.getBytesSync(8), oKS = forge.random.getBytesSync(8);
+    const O = hash2B(op, oVS, U) + oVS + oKS;
+    const OE = aesRaw("AES-CBC", hash2B(op, oKS, U), "\0".repeat(16), fileKey);
+    const P = permissionValue(allowPrint);
+    const pb = String.fromCharCode(P & 255, (P >>> 8) & 255, (P >>> 16) & 255, (P >>> 24) & 255);
+    const Perms = aesRaw("AES-ECB", fileKey, null, pb + "\xff\xff\xff\xff" + "Tadb" + forge.random.getBytesSync(4));
+
+    const hx = b => PDFHexString.of(B.bytesToHex(b));
+    const encDict = ctx.obj({
+      Filter: "Standard", V: 5, R: 6, Length: 256, P: P,
+      CF: { StdCF: { AuthEvent: "DocOpen", CFM: "AESV3", Length: 32 } }, StmF: "StdCF", StrF: "StdCF",
+      O: hx(O), U: hx(U), OE: hx(OE), UE: hx(UE), Perms: hx(Perms), EncryptMetadata: true
+    });
+
+    // AES-256-CBC, IV acak di depan, padding PKCS#7 (WebCrypto bila ada = cepat)
+    let cryptoKey = null;
+    if (subtle) cryptoKey = await subtle.importKey("raw", binaryToU8(fileKey), { name: "AES-CBC" }, false, ["encrypt"]);
+    async function enc(u8) {
+      const iv = new Uint8Array(16); const rnd = forge.random.getBytesSync(16); for (let i = 0; i < 16; i++) iv[i] = rnd.charCodeAt(i);
+      let ct;
+      if (cryptoKey) ct = new Uint8Array(await subtle.encrypt({ name: "AES-CBC", iv }, cryptoKey, u8));
+      else { const c = forge.cipher.createCipher("AES-CBC", fileKey); c.start({ iv: u8ToBinary(iv) }); c.update(B.createBuffer(u8ToBinary(u8))); c.finish(); ct = binaryToU8(c.output.getBytes()); }
+      const out = new Uint8Array(16 + ct.length); out.set(iv, 0); out.set(ct, 16); return out;
+    }
+    const contentsKey = PDFName.of("Contents");
+    async function walk(obj, skipContents) {
+      if (obj instanceof PDFString || obj instanceof PDFHexString) return PDFHexString.of(B.bytesToHex(u8ToBinary(await enc(obj.asBytes()))));
+      if (obj instanceof PDFArray) { for (let i = 0; i < obj.size(); i++) obj.set(i, await walk(obj.get(i), false)); return obj; }
+      if (obj instanceof PDFDict) {
+        for (const [k, v] of obj.entries()) {
+          if (skipContents && k === contentsKey) continue;   // isi tanda tangan TIDAK dienkripsi (ISO 32000 §7.6.1)
+          obj.set(k, await walk(v, false));
+        }
+        return obj;
+      }
+      return obj;
+    }
+    for (const [ref, obj] of ctx.enumerateIndirectObjects()) {
+      if (obj === encDict) continue;
+      if (obj instanceof PDFLib.PDFStream) {
+        const data = obj.getContents();                 // byte terkode (sudah difilter)
+        const dict = obj.dict;
+        await walk(dict, false);
+        const ns = PDFLib.PDFRawStream.of(dict, await enc(data));
+        ctx.assign(ref, ns);
+      } else {
+        await walk(obj, obj === sigDict);
+      }
+    }
+    const encRef = ctx.register(encDict);
+    ctx.trailerInfo.Encrypt = encRef;
+    const id = B.bytesToHex(forge.random.getBytesSync(16));
+    ctx.trailerInfo.ID = ctx.obj([PDFHexString.of(id), PDFHexString.of(id)]);
+  }
+
+  function isEncrypted(bytes) {
+    const tail = u8ToBinary(bytes.subarray(Math.max(0, bytes.length - 4096)));
+    const head = u8ToBinary(bytes.subarray(0, Math.min(bytes.length, 4 * 1024 * 1024)));
+    return /\/Encrypt\s+\d+\s+\d+\s+R/.test(tail) || /\/Encrypt\s+\d+\s+\d+\s+R/.test(head);
+  }
+
+  /* ---------- mode gambar (seperti hasil pindai) ---------- */
+  // Pola pengaman anti-OCR: garis putih tipis horizontal yang bergelombang,
+  // memotong goresan huruf. Terbukti (uji Tesseract) menurunkan OCR ke <1% kata,
+  // tahan terhadap kompresi JPEG dan blur, sementara mata manusia tetap membaca normal.
+  // Digambar pada ImageData kanvas skala abu-abu. spacing/width dalam piksel gambar.
+  function applyAntiOcr(ctx, W, Hpx, strength, scale) {
+    const k = (scale || 2.78) / 2.78;                       // faktor skala relatif thd 200 dpi
+    const img = ctx.getImageData(0, 0, W, Hpx), d = img.data;
+    const wob = (x) => 3.0 * Math.sin(2 * Math.PI * x / (90 * k)) + 1.5 * Math.sin(2 * Math.PI * x / (37 * k));
+    let sp, th, dbl;
+    if (strength === "ringan") { sp = 9 * k; th = 1.0 * k; dbl = false; }
+    else if (strength === "sedang") { sp = 7 * k; th = 2.0 * k; dbl = false; }
+    else { sp = 6 * k; th = 2.0 * k; dbl = true; }          // kuat
+    const half = sp / 2;
+    for (let y = 0; y < Hpx; y++) {
+      for (let x = 0; x < W; x++) {
+        const w = wob(x), i = (y * W + x) * 4;
+        if (((y + w) % sp + sp) % sp < th) { d[i] = d[i + 1] = d[i + 2] = 255; }
+        else if (dbl && ((y + w + half) % sp + sp) % sp < th) {
+          if (d[i] > 95) { d[i] = d[i + 1] = d[i + 2] = 95; }
+        }
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  async function rasterize(numPages, renderPage, onProgress) {
+    const doc = await PDFDocument.create();
+    for (let i = 1; i <= numPages; i++) {
+      const r = await renderPage(i);
+      const img = await doc.embedJpg(r.jpg);
+      const pg = doc.addPage([r.width, r.height]);
+      pg.drawImage(img, { x: 0, y: 0, width: r.width, height: r.height });
+      if (onProgress) onProgress(i, numPages);
+    }
+    return await doc.save({ useObjectStreams: false });
+  }
+
+  /* ---------- verifikasi ---------- */
+  function verifyPdf(bytes) {
+    const bin = u8ToBinary(bytes);
+    const results = [];
+    const re = /\/ByteRange\s*\[\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*\]/g;
+    let m;
+    while ((m = re.exec(bin))) {
+      const [o1, l1, o2, l2] = m.slice(1).map(Number);
+      const r = { byteRange: [o1, l1, o2, l2], coversWholeFile: o2 + l2 === bin.length };
+      if (!r.coversWholeFile) r.appended = classifyAppended(bin, o2 + l2);
+      try {
+        const hexStr = bin.slice(o1 + l1 + 1, o2 - 1).replace(/[^0-9a-fA-F]/g, "");
+        let der = forge.util.hexToBytes(hexStr);
+        // buang padding nol di ujung dengan membaca panjang ASN.1
+        const asn = forge.asn1.fromDer(forge.util.createBuffer(der), { strict: false, parseAllBytes: false });
+        const msg = forge.pkcs7.messageFromAsn1(asn);
+        const cap = msg.rawCapture;
+        const certs = (msg.certificates || []).map(normalizeCert);
+        // cari sertifikat penanda tangan via serial
+        const serial = cap.serial ? forge.util.bytesToHex(cap.serial) : null;
+        const cert = certs.find(c => serial && c.serialNumber.replace(/^0+/, "") === serial.replace(/^0+/, "")) || certs[0];
+        r.signer = cert ? cn(cert) : "(tidak diketahui)";
+        r.org = cert ? field(cert, "O") : "";
+        r.title = cert ? field(cert, "title") : "";
+        r.issuer = cert ? dec(cert.issuer.getField("CN")) : "";
+        r.selfSigned = cert ? cert.isIssuer(cert) : false;
+        r.fingerprint = cert ? fingerprint(cert) : "";
+        r.validTo = cert ? cert.validity.notAfter : null;
+        const digOid = forge.asn1.derToOid(cap.digestAlgorithm);
+        const mdName = { [forge.pki.oids.sha256]: "sha256", [forge.pki.oids.sha384]: "sha384", [forge.pki.oids.sha512]: "sha512", [forge.pki.oids.sha1]: "sha1" }[digOid];
+        if (!mdName) throw new Error("Algoritma hash tidak didukung pemeriksa ini.");
+        const data = bin.slice(o1, o1 + l1) + bin.slice(o2, o2 + l2);
+        const md = forge.md[mdName].create(); md.update(data);
+        const docDigest = md.digest().getBytes();
+        let attrDigest = null, sigTime = null;
+        for (const at of cap.authenticatedAttributes || []) {
+          const oid = forge.asn1.derToOid(at.value[0].value);
+          if (oid === forge.pki.oids.messageDigest) attrDigest = at.value[1].value[0].value;
+          if (oid === forge.pki.oids.signingTime) {
+            const v = at.value[1].value[0];
+            sigTime = v.type === forge.asn1.Type.UTCTIME ? forge.asn1.utcTimeToDate(v.value) : forge.asn1.generalizedTimeToDate(v.value);
+          }
+        }
+        r.time = sigTime;
+        r.integrity = attrDigest !== null && attrDigest === docDigest;
+        // tanda tangan atas atribut
+        const set = forge.asn1.create(forge.asn1.Class.UNIVERSAL, forge.asn1.Type.SET, true, cap.authenticatedAttributes);
+        const md2 = forge.md[mdName].create(); md2.update(forge.asn1.toDer(set).getBytes());
+        try { r.signatureValid = !!(cert && cert.publicKey.verify(md2.digest().getBytes(), cap.signature)); }
+        catch (e) { r.signatureValid = false; r.note = "Kunci bukan RSA — periksa di Adobe Reader."; }
+      } catch (e) { r.error = e.message; r.integrity = false; r.signatureValid = false; }
+      results.push(r);
+    }
+    results.encrypted = isEncrypted(bytes);
+    results.isPdf = bin.slice(0, 1024).indexOf("%PDF-") >= 0;
+    results.complete = bin.slice(Math.max(0, bin.length - 2048)).indexOf("%%EOF") >= 0;
+    results.hasSigMarker = /\/Type\s*\/Sig\b/.test(bin) || /\/ByteRange/.test(bin) || /adbe\.pkcs7/.test(bin) || /ETSI\.CAdES/.test(bin);
+    return results;
+  }
+
+  /* Menilai isi yang ditambahkan setelah tanda tangan:
+     "ltv"        = hanya data validasi (sertifikat, CRL, OCSP) — wajar
+     "changed"    = ada objek lain (halaman, isi, anotasi, dsb.) — dokumen diubah
+     "unknown"    = terkompresi / tidak bisa dipastikan */
+  function classifyAppended(bin, from) {
+    const tail = bin.slice(from);
+    const objRe = /(\d+)\s+(\d+)\s+obj\b([\s\S]*?)\bendobj/g;
+    let m, count = 0, verdict = "ltv";
+    const origPages = (/\/Type\s*\/Catalog[\s\S]{0,400}?\/Pages\s+(\d+\s+\d+)\s+R/.exec(bin.slice(0, from)) || [])[1];
+    while ((m = objRe.exec(tail))) {
+      count++;
+      const body = m[3];
+      const dictHead = body.split(/\bstream\r?\n/)[0];
+      if (/\/Type\s*\/ObjStm/.test(dictHead) || /\/Type\s*\/XRef/.test(dictHead)) { verdict = verdict === "changed" ? verdict : "unknown"; continue; }
+      if (/\/Type\s*\/Catalog/.test(dictHead)) {
+        const pg = (/\/Pages\s+(\d+\s+\d+)\s+R/.exec(dictHead) || [])[1];
+        if (origPages && pg && pg.replace(/\s+/g, " ") !== origPages.replace(/\s+/g, " ")) verdict = "changed";
+        continue;
+      }
+      if (/\/Type\s*\/(DSS|VRI)\b/.test(dictHead) || /\/(Certs|CRLs|OCSPs|VRI)\b/.test(dictHead)) continue;
+      if (/\bstream\r?\n/.test(body)) {
+        const data = body.split(/\bstream\r?\n/)[1] || "";
+        if (!/\/(Type|Subtype|Filter)\b/.test(dictHead) && data.charCodeAt(0) === 0x30) continue; // DER mentah
+        if (/\/Filter/.test(dictHead) && !/\/(Type|Subtype)\b/.test(dictHead)) { verdict = "changed"; continue; } // aliran isi baru
+      }
+      verdict = "changed";
+    }
+    if (count === 0) verdict = /\S/.test(tail.replace(/%%EOF|startxref|xref|trailer|[\d\s]+[nf]?/g, "")) ? "unknown" : "ltv";
+    return verdict;
+  }
+
+  /* ---------- helper teks ---------- */
+  function safeFor(font) {
+    const cache = {};
+    return t => Array.from(String(t).normalize("NFC")).map(ch => {
+      if (ch in cache) return cache[ch];
+      let out = ch;
+      try { font.widthOfTextAtSize(ch, 10); }
+      catch (e) {
+        const base = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        try { font.widthOfTextAtSize(base, 10); out = base; } catch (e2) { out = "?"; }
+      }
+      return (cache[ch] = out);
+    }).join("");
+  }
+  function wrap(text, font, size, maxW) {
+    const words = safeFor(font)(text).split(/\s+/), lines = []; let cur = "";
+    for (const w of words) {
+      const t = cur ? cur + " " + w : w;
+      if (font.widthOfTextAtSize(t, size) <= maxW) cur = t; else { if (cur) lines.push(cur); cur = w; }
+    }
+    if (cur) lines.push(cur); return lines;
+  }
+  const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  function tanggalID(d) {
+    const p = n => String(n).padStart(2, "0");
+    const off = -d.getTimezoneOffset() / 60;
+    const tz = off === 7 ? "WIB" : off === 8 ? "WITA" : off === 9 ? "WIT" : "UTC" + (off >= 0 ? "+" : "") + off;
+    return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())} ${tz}`;
+  }
+
+  return { classifyAppended, isEncrypted, rasterize, applyAntiOcr, createIdentity, openIdentity, signPdf, verifyPdf, hasSignature, fingerprint, cn, field, tanggalID, u8ToBinary, binaryToU8 };
+});
+
+</script>
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const Core = SegelCore;
+const LS_KEY="segel.identity.v1";
+let identity=null;      // {p12b64, name, org, email, fp}
+let unlocked=null;      // {privateKey, cert, chain}
+let srcFile=null, srcBytes=null, outBytes=null, outName="";
+
+/* ---------- penyimpanan lokal (aman bila gagal) ---------- */
+function lsGet(){ try{ const v=localStorage.getItem(LS_KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function lsSet(v){ try{ localStorage.setItem(LS_KEY, JSON.stringify(v)); }catch(e){} }
+function lsDel(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+
+/* ---------- util ---------- */
+function show(el,cls,html){ el.className="msg "+cls; el.innerHTML=html; el.hidden=false; }
+function hide(el){ el.hidden=true; }
+function fmtSize(b){ return b<1048576 ? Math.max(1,Math.round(b/1024))+" KB" : (b/1048576).toFixed(1)+" MB"; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function b64FromBin(s){ return btoa(s); } function binFromB64(b){ return atob(b); }
+function initials(n){ return (n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase(); }
+function tick(){ return new Promise(r=>setTimeout(r,20)); }
+
+async function saveFile(filename, data){
+  let dl=null;
+  try{ if(window.claude && typeof claude.use==="function") dl=await claude.use("downloads"); }catch(e){ dl=null; }
+  // kirim sebagai byte yang sudah dibaca penuh (Blob tidak dibaca oleh host → file bisa rusak)
+  const bytes = data instanceof Blob ? new Uint8Array(await data.arrayBuffer())
+              : data instanceof Uint8Array ? data.slice() : new Uint8Array(data);
+  if(!bytes.length) throw new Error("Isi file kosong.");
+  const blob = new Blob([bytes], {type: /\.pdf$/i.test(filename) ? "application/pdf" : "application/octet-stream"});
+  if(dl){
+    try{ await dl.save({filename, data:bytes}); return "saved"; }
+    catch(e){
+      if(e && e.code==="declined") return "declined";
+      if(e && e.code==="rate_limited") throw new Error("Ada permintaan unduh yang masih terbuka. Coba lagi sebentar.");
+      throw new Error("Unduhan gagal ("+((e&&e.code)||"error")+"): "+((e&&e.message)||""));
+    }
+  }
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),8000); return "saved";
+}
+
+/* ---------- tab ---------- */
+const tabs=[["tabSign","pSign"],["tabVerify","pVerify"]];
+tabs.forEach(([t,p])=>$(t).addEventListener("click",()=>{
+  tabs.forEach(([t2,p2])=>{ $(t2).setAttribute("aria-selected",t2===t?"true":"false"); $(p2).hidden = t2!==t; });
+}));
+
+/* ---------- identitas ---------- */
+function renderIdentity(){
+  if(!identity){ $("idNone").hidden=false; $("idHave").hidden=true; fillFooter($("nName").value.trim(),$("nOrg").value.trim()); return; }
+  $("idNone").hidden=true; $("idHave").hidden=false;
+  $("idAv").textContent=initials(identity.name);
+  $("idName").textContent=identity.name;
+  $("idMeta").textContent=[[identity.title, identity.org].filter(Boolean).join(" "), identity.email].filter(Boolean).join(" — ") || "Sertifikat pribadi";
+  $("idFp").textContent="Sidik SHA-256: "+identity.fp;
+  $("unlockBox").hidden=!!unlocked; $("unlocked").hidden=!unlocked;
+  fillFooter(identity.name, identity.org);
+  updateSignBtn();
+}
+$("oFooterText").addEventListener("input",()=>$("oFooterText").dataset.touched="1");
+function fillFooter(name,org){
+  if($("oFooterText").dataset.touched || !name) return;
+  const jab=$("oJab").value.trim();
+  const who = name + (jab||org ? ", " + [jab,org].filter(Boolean).join(" ") : "");
+  let t=`Dokumen ini telah ditandatangani secara elektronik oleh ${who}. Setiap perubahan isi setelah penandatanganan akan membatalkan keabsahan tanda tangan.`;
+  if($("oProtect") && $("oProtect").checked) t+=" Dilarang menyalin, mengubah, atau mengekstrak isi dokumen ini, termasuk melalui pemindaian teks (OCR), tanpa izin tertulis pemilik. Pelanggaran dapat dikenai sanksi berdasarkan UU No. 28 Tahun 2014 tentang Hak Cipta dan UU ITE.";
+  $("oFooterText").value=t;
+}
+function refreshFooter(){ if(identity) fillFooter(identity.name, identity.org); else fillFooter($("nName").value.trim(),$("nOrg").value.trim()); }
+["nName","nOrg","oJab"].forEach(i=>$(i).addEventListener("input",refreshFooter));
+
+function adoptP12(p12Der, pw){
+  const id=Core.openIdentity(p12Der, pw);
+  identity={ p12b64:b64FromBin(p12Der), name:Core.cn(id.cert), title:Core.field(id.cert,"title"), org:Core.field(id.cert,"O"), email:Core.field(id.cert,"E"), fp:Core.fingerprint(id.cert) };
+  unlocked=id; lsSet(identity); renderIdentity();
+}
+
+async function createFromForm(){
+  const name=$("nName").value.trim(), org=$("nOrg").value.trim(), email=$("nMail").value.trim(), pw=$("nPw").value, pw2=$("nPw2").value;
+  const m=$("idMsg");
+  if(name.length<3){ show(m,"bad","Isi nama lengkap penanda tangan."); $("nName").focus(); return false; }
+  if(pw.length<6){ show(m,"bad","Buat kata sandi sertifikat, minimal 6 karakter."); $("nPw").focus(); return false; }
+  if(pw!==pw2){ show(m,"bad","Kedua kata sandi tidak sama."); $("nPw2").focus(); return false; }
+  if(!window.crypto || !crypto.subtle){ show(m,"bad","Browser ini tidak mendukung pembuatan kunci. Coba Chrome, Edge, Firefox, atau Safari terbaru."); return false; }
+  const b=$("btnCreate"); b.disabled=true; show(m,"warn",'<span class="spin"></span>Membuat kunci dan sertifikat…');
+  try{
+    await tick();
+    const r=await Core.createIdentity({name,org,email,title:$("oJab").value.trim(),password:pw}, crypto.subtle);
+    adoptP12(r.p12Der, pw);
+    $("nPw").value=$("nPw2").value="";
+    show($("idMsg2"),"ok","<b>Sertifikat dibuat.</b> Unduh cadangannya sekarang — tanpa cadangan, identitas ini hilang bila data browser dihapus.");
+    return true;
+  }catch(e){ show(m,"bad","Gagal membuat sertifikat: "+esc(e.message)); return false; }
+  finally{ b.disabled=false; }
+}
+$("btnCreate").addEventListener("click", createFromForm);
+
+$("btnImport").addEventListener("click",()=>$("fImport").click());
+$("fImport").addEventListener("change", async e=>{
+  const f=e.target.files[0]; e.target.value=""; if(!f) return;
+  const m=$("idMsg");
+  try{
+    let buf=new Uint8Array(await f.arrayBuffer());
+    if(/\.zip$/i.test(f.name)){
+      const z=await JSZip.loadAsync(buf);
+      const entry=Object.values(z.files).find(x=>/\.(p12|pfx)$/i.test(x.name));
+      if(!entry) throw new Error("Tidak ada file .p12 di dalam zip.");
+      buf=await entry.async("uint8array");
+    }
+    const pw=prompt("Kata sandi file sertifikat:");
+    if(pw===null) return;
+    adoptP12(Core.u8ToBinary(buf), pw);
+    hide(m);
+  }catch(err){
+    const msg=/Invalid password|MAC|decrypt/i.test(err.message) ? "Kata sandi salah." : err.message;
+    show(m,"bad","Tidak bisa membuka sertifikat: "+esc(msg));
+  }
+});
+
+$("btnUnlock").addEventListener("click", ()=>{
+  try{ unlocked=Core.openIdentity(binFromB64(identity.p12b64), $("uPw").value); $("uPw").value=""; hide($("idMsg2")); renderIdentity(); }
+  catch(e){ show($("idMsg2"),"bad","Kata sandi salah."); }
+});
+$("uPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("btnUnlock").click(); });
+
+$("btnExport").addEventListener("click", async ()=>{
+  try{
+    const z=new JSZip();
+    const safe=identity.name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")||"sertifikat";
+    z.file(safe+".p12", Core.binaryToU8(binFromB64(identity.p12b64)));
+    if(unlocked) z.file(safe+".cer", forge.pki.certificateToPem(unlocked.cert));
+    z.file("BACA-SAYA.txt", [
+      "CADANGAN SERTIFIKAT TANDA TANGAN ELEKTRONIK",
+      "Pemilik       : "+identity.name+(identity.org?" ("+identity.org+")":""),
+      "Sidik SHA-256 : "+identity.fp,
+      "",
+      safe+".p12 = kunci pribadi + sertifikat. RAHASIA, jangan dibagikan. Dilindungi kata sandi Anda.",
+      unlocked ? safe+".cer = sertifikat publik. Boleh dibagikan ke penerima dokumen." : "(File .cer tidak disertakan karena kunci belum dibuka.)",
+      "",
+      "Agar Adobe Reader penerima menampilkan tanda tangan sebagai tepercaya:",
+      "Edit > Preferences > Signatures > Identities & Trusted Certificates > More >",
+      "Trusted Certificates > Import > pilih file .cer > centang 'Use this certificate as a trusted root'.",
+      "",
+      "Penerima juga bisa mencocokkan sidik SHA-256 di atas dengan isi kode QR pada cap dokumen."
+    ].join("\r\n"));
+    const r=await saveFile("Sertifikat-"+safe+".zip", await z.generateAsync({type:"blob"}));
+    if(r==="saved") show($("idMsg2"), unlocked?"ok":"warn", unlocked?"Cadangan diunduh.":"Cadangan diunduh tanpa file .cer. Buka kunci dulu bila ingin menyertakannya.");
+  }catch(e){ show($("idMsg2"),"bad","Gagal mengunduh: "+esc(e.message)); }
+});
+
+$("btnForget").addEventListener("click", ()=>{
+  if(!confirm("Hapus identitas ini dari browser? Pastikan Anda sudah menyimpan cadangannya.")) return;
+  identity=null; unlocked=null; lsDel(); delete $("oFooterText").dataset.touched; renderIdentity();
+});
+
+/* ---------- dokumen untuk ditandatangani ---------- */
+function bindDrop(dropId, inputId, onFile){
+  const d=$(dropId), i=$(inputId);
+  d.addEventListener("click",()=>i.click());
+  d.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); i.click(); } });
+  d.addEventListener("dragover",e=>{ e.preventDefault(); d.classList.add("hot"); });
+  d.addEventListener("dragleave",()=>d.classList.remove("hot"));
+  d.addEventListener("drop",e=>{ e.preventDefault(); d.classList.remove("hot"); if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+  i.addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f) onFile(f); });
+}
+function isPdf(f){ return f.type==="application/pdf" || /\.pdf$/i.test(f.name); }
+
+bindDrop("sDrop","sFile", async f=>{
+  const m=$("signMsg"); hide(m); $("dlWrap").hidden=true; outBytes=null;
+  if(!isPdf(f)){ srcFile=null; updateSignBtn(); return show(m,"bad","File harus berformat PDF."); }
+  const bytes=new Uint8Array(await f.arrayBuffer());
+  if(Core.hasSignature(bytes)){
+    srcFile=null; srcBytes=null; $("sChip").hidden=true; updateSignBtn();
+    return show(m,"bad","<b>PDF ini sudah bertanda tangan.</b> Menandatanganinya lagi di sini akan merusak tanda tangan yang sudah ada. Gunakan file asli sebelum ditandatangani.");
+  }
+  if(Core.isEncrypted(bytes)){
+    srcFile=null; srcBytes=null; $("sChip").hidden=true;
+    return show(m,"bad","<b>PDF ini sudah terkunci kata sandi.</b> Gunakan file asli yang belum dikunci.");
+  }
+  srcFile=f; srcBytes=bytes; outName=f.name.replace(/\.pdf$/i,"")+"-ditandatangani.pdf";
+  $("sName").textContent=f.name; $("sSize").textContent=fmtSize(f.size); $("sChip").hidden=false;
+  updateSignBtn();
+});
+function updateSignBtn(){}
+function randomPassword(n){
+  const cs="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*+=?";
+  const r=new Uint32Array(n); crypto.getRandomValues(r); return Array.from(r,x=>cs[x%cs.length]).join("");
+}
+async function renderToImages(bytes, scale, antiStrength, onProg){
+  if(!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  const doc=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+  const cv=document.createElement("canvas"), cx=cv.getContext("2d");
+  const out=await Core.rasterize(doc.numPages, async i=>{
+    const page=await doc.getPage(i);
+    const vp1=page.getViewport({scale:1}), vp=page.getViewport({scale});
+    cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
+    cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
+    await page.render({canvasContext:cx, viewport:vp}).promise;
+    if(antiStrength) Core.applyAntiOcr(cx, cv.width, cv.height, antiStrength, scale);
+    const blob=await new Promise(res=>cv.toBlob(res,"image/jpeg",0.92));
+    page.cleanup();
+    return { jpg:new Uint8Array(await blob.arrayBuffer()), width:vp1.width, height:vp1.height };
+  }, (i,n)=>{ onProg&&onProg(i,n); });
+  await doc.destroy();
+  return out;
+}
+$("oStamp").addEventListener("change",e=>$("stampOpts").hidden=!e.target.checked);
+$("oEncrypt").addEventListener("change",e=>$("encOpts").hidden=!e.target.checked);
+$("oScan").addEventListener("change",e=>$("scanOpts").hidden=!e.target.checked);
+$("oAntiOcr").addEventListener("change",e=>$("antiOcrOpts").style.display=e.target.checked?"block":"none");
+function antiWarn(){
+  const v=$("oAntiStr").value, el=$("antiWarn");
+  if(v==="kuat"){ el.className="msg warn"; el.style.padding="8px 10px"; el.innerHTML="Halaman akan tampak bergaris seperti fotokopi lama — masih terbaca, tapi tidak rapi. Ini satu-satunya tingkat yang benar-benar menghentikan OCR."; }
+  else if(v==="sedang"){ el.className="hint"; el.style.padding="0"; el.textContent="Tampilan hampir bersih, tapi OCR masih bisa membaca bila gambarnya dibersihkan. Pilih Kuat untuk benar-benar memblokir OCR."; }
+  else { el.className="hint"; el.style.padding="0"; el.textContent="Hanya penanda visual; tidak menghentikan OCR."; }
+}
+$("oAntiStr").addEventListener("change",antiWarn); antiWarn();
+$("oProtect").addEventListener("change",()=>{ delete $("oFooterText").dataset.touched; refreshFooter(); });
+$("oFooter").addEventListener("change",e=>$("footerWrap").hidden=!e.target.checked);
+
+$("btnSign").addEventListener("click", async ()=>{
+  const m=$("signMsg");
+  if(!srcBytes){ $("sDrop").focus(); return show(m,"warn","<b>Pilih PDF dulu.</b> Letakkan file PDF di kotak di atas, atau klik kotaknya."); }
+  if(!identity){
+    if(!$("nPw").value){ $("nPw").scrollIntoView({block:"center"}); $("nPw").focus();
+      return show(m,"warn","<b>Sertifikat belum dibuat.</b> Isi kata sandi sertifikat di langkah 1 (kiri), lalu klik lagi tombol ini."); }
+    show(m,"warn",'<span class="spin"></span>Membuat sertifikat…');
+    if(!(await createFromForm())) return show(m,"bad","Periksa isian di langkah 1 (kiri).");
+  }
+  if(!unlocked){ $("uPw").scrollIntoView({block:"center"}); $("uPw").focus(); return show(m,"warn","<b>Kunci sertifikat masih tertutup.</b> Masukkan kata sandi di langkah 1, klik Buka kunci, lalu klik lagi tombol ini."); }
+  const b=$("btnSign"); b.disabled=true; $("dlWrap").hidden=true; outBytes=null;
+  show(m,"warn",'<span class="spin"></span>Menyiapkan…');
+  try{
+    await tick();
+    let base=srcBytes;
+    if($("oScan").checked){
+      if(!window.pdfjsLib) throw new Error("Pustaka render PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+      const anti=$("oAntiOcr").checked ? $("oAntiStr").value : null;
+      base=await renderToImages(srcBytes, parseFloat($("oScanQ").value), anti, (i,n)=>show(m,"warn",`<span class="spin"></span>Mengubah halaman ${i} dari ${n} menjadi gambar…`));
+    }
+    const ownerPw = $("oEncrypt").checked ? randomPassword(32) : "";
+    show(m,"warn",'<span class="spin"></span>Mengenkripsi dan menandatangani…'); await tick();
+    const r=await Core.signPdf(base, unlocked, {
+      jabatan:$("oJab").value.trim(),
+      encrypt: $("oEncrypt").checked ? { userPassword:$("oOpenPw").value, ownerPassword:ownerPw, allowPrint:$("oPrint").checked, subtle:crypto.subtle } : null,
+      reason:$("oReason").value.trim()||"Saya menyetujui dokumen ini",
+      location:$("oLoc").value.trim(),
+      contact:Core.field(unlocked.cert,"E"),
+      certify:$("oCertify").checked,
+      stamp:$("oStamp").checked,
+      stampPage:$("oPage").value,
+      stampPos:(document.querySelector('input[name=pos]:checked')||{}).value||"br",
+      footer:$("oFooter").checked ? $("oFooterText").value.trim() : ""
+    });
+    // periksa hasil sendiri sebelum diserahkan
+    const v=Core.verifyPdf(r.bytes)[0];
+    if(!v || !v.integrity || !v.signatureValid || !v.coversWholeFile) throw new Error("Pemeriksaan akhir gagal. Dokumen tidak disimpan.");
+    const head=String.fromCharCode.apply(null, r.bytes.subarray(0,5)), tailTxt=String.fromCharCode.apply(null, r.bytes.subarray(r.bytes.length-32));
+    if(head!=="%PDF-" || tailTxt.indexOf("%%EOF")<0) throw new Error("Struktur PDF hasil tidak lengkap. Dokumen tidak disimpan.");
+    outBytes=r.bytes;
+    const layers=[ "tanda tangan digital", $("oCertify").checked?"kunci anti-perubahan":null, $("oEncrypt").checked?"enkripsi AES-256":null, $("oScan").checked?($("oAntiOcr").checked?"halaman gambar + anti-OCR":"halaman berupa gambar"):null ].filter(Boolean).join(", ");
+    let html=`<b>Dokumen ditandatangani.</b> ${esc(r.signer)} — ${esc(Core.tanggalID(r.date))}. ID dokumen ${esc(r.docId)}. Lapisan: ${esc(layers)}. Sudah diperiksa ulang: sah dan utuh.`;
+    if($("oOpenPw").value && $("oEncrypt").checked) html+=`<br><br><b>Ingat:</b> penerima perlu kata sandi buka yang Anda isi.`;
+    if(ownerPw) html+=`<br><br>Kunci pemilik (untuk membuka batasan kelak — simpan bila perlu, tidak bisa dipulihkan):<div class="pwbox">${esc(ownerPw)}</div>`;
+    show(m,"ok",html);
+    $("dlWrap").hidden=false;
+  }catch(e){
+    const msg=/encrypt/i.test(e.message) ? "PDF ini terkunci password. Buka kuncinya dulu, lalu coba lagi." : e.message;
+    show(m,"bad","Gagal menandatangani: "+esc(msg));
+  }finally{ b.disabled=false; updateSignBtn(); }
+});
+$("btnDl").addEventListener("click", async ()=>{
+  if(!outBytes) return show($("signMsg"),"warn","Belum ada dokumen yang ditandatangani.");
+  try{ await saveFile(outName, new Blob([outBytes],{type:"application/pdf"})); }
+  catch(e){ show($("signMsg"),"bad",esc(e.message)); }
+});
+
+/* ---------- periksa ---------- */
+bindDrop("vDrop","vFile", async f=>{
+  const out=$("vOut");
+  if(!isPdf(f)){ out.innerHTML='<div class="msg bad">File harus berformat PDF.</div>'; return; }
+  out.innerHTML='<div class="empty"><span class="spin"></span>Memeriksa…</div>';
+  await tick();
+  let res;
+  try{ const vb=new Uint8Array(await f.arrayBuffer()); window.__lastEncrypted=Core.isEncrypted(vb); res=Core.verifyPdf(vb); }
+  catch(e){ out.innerHTML='<div class="msg bad">Tidak bisa membaca PDF: '+esc(e.message)+'</div>'; return; }
+  if(!res.length){
+    let title, desc, cls="warn";
+    if(!res.isPdf){
+      cls="bad"; title="File ini bukan PDF yang bisa dibaca";
+      desc="Isi <b>"+esc(f.name)+"</b> tidak dikenali sebagai PDF utuh. File mungkin rusak saat diunduh (nama seperti \"(1)\" menandakan unduhan berulang) atau bukan file yang dimaksud. Unduh ulang lalu coba lagi.";
+    } else if(!res.complete){
+      cls="bad"; title="File PDF tidak lengkap / rusak";
+      desc="Isi <b>"+esc(f.name)+"</b> terpotong — akhir file tidak ditemukan. File kemungkinan gagal terunduh sepenuhnya (nama seperti \"(1)\" menandakan unduhan berulang). Hapus file ini dan unduh ulang dari aplikasi.";
+    } else if(res.hasSigMarker){
+      title="Ada tanda tangan, tapi belum bisa dibaca di sini";
+      desc="Dokumen ini memuat penanda tanda tangan"+(res.encrypted?" dan terenkripsi":"")+", tetapi strukturnya tidak dapat diurai oleh pemeriksa ini. Buka di Adobe Reader untuk melihat status tanda tangannya.";
+    } else if(res.encrypted){
+      title="PDF terkunci, tanpa tanda tangan yang terbaca";
+      desc="Dokumen <b>"+esc(f.name)+"</b> terenkripsi tetapi tidak memuat tanda tangan digital yang bisa dibaca. Bila ini seharusnya file bertanda tangan, kemungkinan file tercampur atau rusak saat diunduh — unduh ulang dari aplikasi.";
+    } else {
+      title="Tidak ada tanda tangan elektronik";
+      desc="Dokumen <b>"+esc(f.name)+"</b> tidak memiliki tanda tangan digital di dalamnya, jadi keasliannya tidak bisa dibuktikan secara elektronik.";
+    }
+    out.innerHTML=verdictHTML(cls,cls==="bad"?"\u2715":"!",title,desc,"")+explainHTML();
+    return;
+  }
+  out.innerHTML = res.map((r,i)=>renderResult(r,i,res.length,f.name)).join("") + explainHTML();
+});
+
+function verdictHTML(cls,icon,title,desc,body){
+  return `<div class="verdict ${cls}"><div class="h"><div class="ic" aria-hidden="true">${icon}</div><div><div class="tt">${title}</div><div class="ds">${desc}</div></div></div>${body}</div>`;
+}
+function renderResult(r,i,n,fname){
+  const label = n>1 ? `Tanda tangan ${i+1} dari ${n}: ` : "";
+  let cls,icon,title,desc;
+  if(r.error || !r.integrity || !r.signatureValid){
+    cls="bad";icon="✕";title=label+"Tanda tangan tidak sah";
+    desc="Isi dokumen sudah berubah sejak ditandatangani, atau struktur tanda tangannya rusak. Jangan anggap dokumen ini asli.";
+  } else if(!r.coversWholeFile && r.appended==="changed"){
+    cls="bad";icon="✕";title=label+"Dokumen diubah setelah ditandatangani";
+    desc="Bagian yang ditandatangani masih utuh, tapi ada isi baru yang disisipkan sesudahnya (misalnya halaman, teks, atau anotasi). Versi yang Anda lihat bukan versi yang disahkan.";
+  } else if(!r.coversWholeFile && r.appended==="unknown"){
+    cls="warn";icon="!";title=label+"Tanda tangan sah, ada tambahan yang tidak bisa dipastikan";
+    desc="Bagian yang ditandatangani utuh, tapi ada data tambahan terkompresi sesudahnya. Periksa di Adobe Reader untuk memastikan.";
+  } else {
+    cls="ok";icon="✓";title=label+"Tanda tangan sah, dokumen utuh";
+    desc = r.coversWholeFile ? "Isi dokumen persis sama dengan saat ditandatangani." : "Isi dokumen sama dengan saat ditandatangani. Tambahan sesudahnya hanya data validasi sertifikat (wajar pada tanda tangan resmi).";
+  }
+  const trust = r.selfSigned
+    ? "Sertifikat pribadi (dibuat sendiri, tidak diterbitkan lembaga). Cocokkan sidik sertifikat dengan pemiliknya."
+    : "Diterbitkan oleh "+esc(r.issuer||"lembaga sertifikasi")+". Rantai kepercayaan lengkap diperiksa di Adobe Reader atau layanan verifikasi resmi penerbit.";
+  const rows=[];
+  if(r.signer) rows.push(["Penanda tangan", esc(r.signer)+(r.title?"<br>"+esc(r.title):"")+(r.org?"<br>"+esc(r.org):"")]);
+  if(window.__lastEncrypted) rows.push(["Proteksi","Terenkripsi dengan batasan izin akses"]);
+  if(r.time) rows.push(["Waktu tanda tangan", esc(Core.tanggalID(new Date(r.time)))]);
+  if(r.signer) rows.push(["Sertifikat", trust]);
+  if(r.validTo) rows.push(["Berlaku sampai", esc(Core.tanggalID(new Date(r.validTo)).replace(/,.*$/,""))]);
+  if(identity && r.fingerprint===identity.fp) rows.push(["Kecocokan","Ini sertifikat Anda sendiri."]);
+  if(r.fingerprint) rows.push(["Sidik SHA-256",'<span class="fp">'+esc(r.fingerprint)+'</span>']);
+  if(r.note) rows.push(["Catatan", esc(r.note)]);
+  const body = rows.length ? '<dl class="kv">'+rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join("")+'</dl>' : "";
+  return verdictHTML(cls,icon,title,desc,body);
+}
+function explainHTML(){
+  return `<div class="explain"><p><b>Apa yang diperiksa:</b> sidik isi dokumen dibandingkan dengan sidik yang dikunci saat penandatanganan, keabsahan kunci penanda tangan, dan ada tidaknya isi yang disisipkan setelahnya.</p><p>Untuk dokumen resmi (BSrE, Privy, Peruri, dll.), status kepercayaan penerbit yang lengkap tetap sebaiknya dicek di Adobe Reader atau situs verifikasi penerbitnya.</p></div>`;
+}
+
+/* ---------- mulai ---------- */
+identity=lsGet(); renderIdentity();
+})();
+</script>
+</body>
+</html>
