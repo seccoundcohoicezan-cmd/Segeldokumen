@@ -4,9 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Segel Digital — tanda tangan elektronik di dalam PDF</title>
+<meta name="description" content="Tanda tangani PDF secara elektronik, kunci dengan AES-256, dan atur posisi cap tanda tangan sesuka Anda. Semua diproses di perangkat, tanpa unggah ke server.">
+<meta name="theme-color" content="#0d6b5e">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Segel Digital — tanda tangan elektronik di dalam PDF">
+<meta property="og:description" content="Tanda tangan digital, enkripsi AES-256, dan cap QR yang bisa ditata bebas. Diproses di perangkat Anda.">
+<meta property="og:url" content="https://segeldokumen.vercel.app/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d6b5e'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M11 14v-3a5 5 0 0 1 10 0v3h1.5a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 8 23.5v-8A1.5 1.5 0 0 1 9.5 14H11Zm2 0h6v-3a3 3 0 0 0-6 0v3Z'/%3E%3Ccircle cx='16' cy='19' r='1.8' fill='%23f0b542'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/node-forge@1.3.1/dist/forge.min.js"></script>
@@ -14,288 +21,614 @@
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
 :root{
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  --ink:#141a22; --ink-soft:#4a5565; --paper:#eef1f3; --card:#ffffff;
-  --line:#d7dde3; --line-strong:#b9c2cc; --seal:#9a5b2e; --seal-deep:#7c4620;
-  --ok:#2f7d4f; --ok-bg:#e7f3ec; --bad:#b3372f; --bad-bg:#f8e8e6; --warn:#8a6414; --warn-bg:#f7f0dd;
-  --shadow:0 1px 0 rgba(20,26,34,.04), 0 12px 30px -18px rgba(20,26,34,.35);
+  --bg:#f3f1ec; --surface:#ffffff; --surface-2:#f8f7f3; --ink:#121820; --ink-soft:#4d5867; --ink-faint:#6b7480;
+  --line:#e3dfd6; --line-strong:#c9c3b6;
+  --primary:#0d6b5e; --primary-deep:#08493f; --primary-soft:#e3f1ee; --on-primary:#ffffff;
+  --accent:#c27c0e; --accent-soft:#fbf1de;
+  --ok:#22764a; --ok-bg:#e6f3eb; --bad:#b0352c; --bad-bg:#f9e7e5; --warn:#7f5a0c; --warn-bg:#f8efd9;
+  --stage:#e4e0d7;
+  --r-sm:8px; --r:12px; --r-lg:18px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  --shadow:0 1px 0 rgba(18,24,32,.04), 0 10px 28px -16px rgba(18,24,32,.28);
+  --shadow-lg:0 2px 0 rgba(18,24,32,.04), 0 24px 48px -24px rgba(18,24,32,.4);
   --font:"Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --ease:cubic-bezier(.2,.7,.2,1);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --ink:#e9edf2; --ink-soft:#a4b0be; --paper:#0e1319; --card:#151c25; --line:#26313d; --line-strong:#3a4756;
-    --seal:#c98a52; --seal-deep:#a86e3d; --ok:#62cf8e; --ok-bg:#12281c; --bad:#f0857c; --bad-bg:#2e1614; --warn:#dcc073; --warn-bg:#2a2412;
-    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.7);
+    --bg:#0b1013; --surface:#131a1f; --surface-2:#182127; --ink:#e7ecee; --ink-soft:#a3b2b9; --ink-faint:#83939b;
+    --line:#243039; --line-strong:#364550;
+    --primary:#3fbfa8; --primary-deep:#2a9c88; --primary-soft:#11302b; --on-primary:#03201b;
+    --accent:#f0b542; --accent-soft:#2e2412;
+    --ok:#5fd193; --ok-bg:#0f2a1c; --bad:#f2877e; --bad-bg:#2f1513; --warn:#e2c270; --warn-bg:#2b2410;
+    --stage:#0f161a;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.75);
+    --shadow-lg:0 2px 0 rgba(0,0,0,.3), 0 28px 56px -28px rgba(0,0,0,.85);
   }
 }
 :root[data-theme="dark"]{
-  --ink:#e9edf2; --ink-soft:#a4b0be; --paper:#0e1319; --card:#151c25; --line:#26313d; --line-strong:#3a4756;
-  --seal:#c98a52; --seal-deep:#a86e3d; --ok:#62cf8e; --ok-bg:#12281c; --bad:#f0857c; --bad-bg:#2e1614; --warn:#dcc073; --warn-bg:#2a2412;
-  --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.7);
+  --bg:#0b1013; --surface:#131a1f; --surface-2:#182127; --ink:#e7ecee; --ink-soft:#a3b2b9; --ink-faint:#83939b;
+  --line:#243039; --line-strong:#364550;
+  --primary:#3fbfa8; --primary-deep:#2a9c88; --primary-soft:#11302b; --on-primary:#03201b;
+  --accent:#f0b542; --accent-soft:#2e2412;
+  --ok:#5fd193; --ok-bg:#0f2a1c; --bad:#f2877e; --bad-bg:#2f1513; --warn:#e2c270; --warn-bg:#2b2410;
+  --stage:#0f161a;
+  --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.75);
+  --shadow-lg:0 2px 0 rgba(0,0,0,.3), 0 28px 56px -28px rgba(0,0,0,.85);
 }
 *{box-sizing:border-box}
 [hidden]{display:none !important}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{margin:0; font-family:var(--font); color:var(--ink); background:var(--paper); line-height:1.5; -webkit-font-smoothing:antialiased}
-.wrap{max-width:1040px; margin:0 auto; padding:28px 20px 72px}
-.brand{display:flex; align-items:center; gap:14px}
-.seal{width:44px;height:44px;border-radius:50%;flex:none;border:2px solid var(--seal);color:var(--seal);display:grid;place-items:center;font-weight:700;font-size:17px;box-shadow:inset 0 0 0 4px color-mix(in srgb,var(--seal) 16%,transparent)}
-h1{font-size:clamp(24px,3.4vw,32px);letter-spacing:-.02em;margin:0;font-weight:700}
-.sub{color:var(--ink-soft);margin:2px 0 0;font-size:14.5px;max-width:64ch}
+html{scroll-padding-top:88px;-webkit-text-size-adjust:100%}
+body{margin:0;font-family:var(--font);font-size:16px;color:var(--ink);background:var(--bg);line-height:1.55;-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+svg{display:block}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.skip{position:absolute;left:var(--s4);top:-60px;z-index:50;background:var(--ink);color:var(--surface);padding:var(--s2) var(--s4);border-radius:var(--r-sm);font-weight:600;text-decoration:none;transition:top .2s}
+.skip:focus{top:var(--s3)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-.tabs{display:flex;gap:4px;margin:26px 0 18px;border-bottom:1px solid var(--line)}
-.tab{font:inherit;font-size:15px;font-weight:600;padding:10px 16px;border:none;background:none;color:var(--ink-soft);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
-.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--seal)}
-.tab:focus-visible{outline:2px solid var(--seal);outline-offset:2px;border-radius:6px}
-.panel[hidden]{display:none}
+/* ---------- kepala ---------- */
+.top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:saturate(1.4) blur(12px);-webkit-backdrop-filter:saturate(1.4) blur(12px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top__in{max-width:1320px;margin:0 auto;padding:var(--s3) var(--s4);display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:var(--s3);margin-right:auto;min-width:0;flex:1}
+.logo{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;background:linear-gradient(155deg,var(--primary),var(--primary-deep));box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 6px 16px -8px var(--primary)}
+.logo svg{width:24px;height:24px}
+.brand__t{font-size:1.15rem;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1.1}
+.brand__s{font-size:.78rem;color:var(--ink-soft);margin:2px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabs{display:flex;gap:2px;padding:3px;background:var(--surface-2);border:1px solid var(--line);border-radius:999px;order:3;width:100%}
+.tab{flex:1;font:inherit;font-size:.88rem;font-weight:600;min-height:44px;padding:0 var(--s3);white-space:nowrap;border:none;border-radius:999px;background:none;color:var(--ink-soft);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);transition:background .2s,color .2s}
+.tab svg{width:17px;height:17px}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(18,24,32,.12)}
+.top__tools{display:flex;align-items:center;gap:var(--s2)}
+.pill{display:none;align-items:center;gap:6px;font-size:.78rem;font-weight:600;color:var(--primary);background:var(--primary-soft);padding:6px 10px;border-radius:999px;white-space:nowrap}
+.pill svg{width:14px;height:14px}
+.iconbtn{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink-soft);display:grid;place-items:center;cursor:pointer;transition:color .15s,border-color .15s}
+.iconbtn:hover{color:var(--ink);border-color:var(--line-strong)}
+.iconbtn svg{width:19px;height:19px}
+@media(max-width:419px){.brand__s{display:none !important}.logo{width:38px;height:38px}.top__in{padding:var(--s2) var(--s3);gap:var(--s2)}}
+@media(min-width:760px){
+  .tab{font-size:.92rem;padding:0 var(--s4)}
+  .tabs{order:0;width:auto}
+  .tab{flex:none}
+  .pill{display:inline-flex}
+}
 
-.grid{display:grid;grid-template-columns:1fr;gap:18px}
-@media(min-width:880px){.grid{grid-template-columns:.9fr 1.1fr}}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
-.pad{padding:20px}
-.card h2{font-size:16px;font-weight:700;margin:0 0 4px;letter-spacing:-.01em}
-.card .lead{font-size:13.5px;color:var(--ink-soft);margin:0 0 14px}
-.step{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--seal);color:#fff;font-size:12px;font-weight:700;margin-right:8px;vertical-align:1px}
+/* ---------- tata letak ---------- */
+.wrap{max-width:1320px;margin:0 auto;padding:var(--s5) var(--s4) var(--s7)}
+.intro{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--s3) var(--s5);margin-bottom:var(--s5)}
+.intro h1{font-size:clamp(1.6rem,3.2vw,2.3rem);line-height:1.1;letter-spacing:-.03em;margin:0;max-width:22ch}
+.intro h1 em{font-style:normal;color:var(--primary)}
+.intro p{margin:var(--s2) 0 0;color:var(--ink-soft);max-width:62ch;font-size:.98rem}
+.feats{display:flex;flex-wrap:wrap;gap:var(--s2);list-style:none;margin:0;padding:0}
+.feats li{display:inline-flex;align-items:center;gap:6px;font-size:.8rem;font-weight:600;color:var(--ink-soft);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.feats svg{width:14px;height:14px;color:var(--primary)}
 
-.field{margin-top:12px}
-label.l{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
-input[type=text],input[type=email],input[type=password],select,textarea{width:100%;padding:10px 12px;font:inherit;font-size:14px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px}
-textarea{resize:vertical;min-height:62px}
-input:focus,select:focus,textarea:focus{outline:2px solid color-mix(in srgb,var(--seal) 45%,transparent);outline-offset:1px;border-color:var(--seal)}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hint{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+.ws{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s4)}
+.ws__side,.ws__main{display:contents}
+#cardId{order:1} #cardDoc{order:2} #cardOpts{order:3} #actBar{order:4}
+@media(min-width:1080px){
+  .ws{grid-template-columns:minmax(330px,390px) minmax(0,1fr);align-items:start;gap:var(--s5)}
+  .ws__side,.ws__main{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+  .ws__side{position:sticky;top:84px;max-height:calc(100vh - 100px);overflow:auto;padding:2px 6px 8px 2px;margin:-2px -6px 0 -2px;scrollbar-width:thin}
+}
 
-.btn{font:inherit;font-weight:600;font-size:14px;padding:10px 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--card);color:var(--ink);cursor:pointer}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.pad{padding:var(--s5) var(--s4)}
+@media(min-width:480px){.pad{padding:var(--s5)}}
+.card__h{display:flex;align-items:center;gap:var(--s3);margin:0 0 var(--s1)}
+.card h2{font-size:1.05rem;font-weight:700;margin:0;letter-spacing:-.01em}
+.step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--primary-soft);color:var(--primary);font-size:.8rem;font-weight:700;flex:none}
+.lead{font-size:.88rem;color:var(--ink-soft);margin:0 0 var(--s4)}
+
+.field{margin-top:var(--s3)}
+label.l{display:block;font-size:.84rem;font-weight:600;margin-bottom:6px}
+.opt{font-weight:400;color:var(--ink-faint)}
+input[type=text],input[type=email],input[type=password],input[type=number],select,textarea{width:100%;min-height:44px;padding:10px 12px;font:inherit;font-size:.95rem;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;transition:border-color .15s,box-shadow .15s}
+textarea{resize:vertical;min-height:84px;font-size:.86rem;line-height:1.5}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent)}
+.row2{display:grid;grid-template-columns:1fr;gap:var(--s3)}
+@media(min-width:420px){.row2{grid-template-columns:1fr 1fr}}
+.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0}
+
+.btn{font:inherit;font-weight:600;font-size:.92rem;min-height:44px;padding:0 var(--s4);border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:var(--s2);text-decoration:none;transition:border-color .15s,background .15s,transform .15s,filter .15s}
+.btn svg{width:17px;height:17px;flex:none}
 .btn:hover{border-color:var(--ink-soft)}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.btn.primary{background:linear-gradient(180deg,var(--seal),var(--seal-deep));color:#fff;border:none}
-.btn.primary:hover{filter:brightness(1.06)}
-.btn.big{width:100%;padding:14px;font-size:15.5px;margin-top:18px}
-.btn.link{border:none;background:none;padding:4px 0;color:var(--seal);font-weight:600}
-.btn:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
-.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn--primary{background:var(--primary);color:var(--on-primary);border-color:transparent}
+.btn--primary:hover{background:var(--primary-deep);border-color:transparent}
+.btn--ghost{border-color:transparent;background:none;color:var(--primary);padding:0 var(--s2)}
+.btn--ghost:hover{background:var(--primary-soft);border-color:transparent}
+.btn--danger{color:var(--bad)}
+.btn--sm{min-height:36px;font-size:.84rem;padding:0 var(--s3)}
+.btn--big{width:100%;min-height:52px;font-size:1.02rem;border-radius:12px}
+.btns{display:flex;gap:var(--s2);flex-wrap:wrap;margin-top:var(--s4)}
 
-.idcard{border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start;background:color-mix(in srgb,var(--seal) 5%,var(--card))}
-.idcard .av{width:40px;height:40px;border-radius:50%;background:var(--seal);color:#fff;display:grid;place-items:center;font-weight:700;flex:none}
+.idcard{border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);display:flex;gap:var(--s3);align-items:flex-start;background:var(--surface-2)}
+.idcard .av{width:44px;height:44px;border-radius:12px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:700;flex:none}
 .idcard .nm{font-weight:700}
-.idcard .meta{font-size:12.5px;color:var(--ink-soft);word-break:break-all}
-.fp{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:var(--ink-soft);word-break:break-all;margin-top:4px}
+.idcard .meta{font-size:.82rem;color:var(--ink-soft);word-break:break-word}
+.fp{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);word-break:break-all;margin-top:6px;line-height:1.5}
 
-.drop{border:1.5px dashed var(--line-strong);border-radius:14px;padding:26px 18px;text-align:center;cursor:pointer;background:color-mix(in srgb,var(--paper) 45%,transparent);transition:border-color .15s,background .15s}
-.drop:hover,.drop.hot{border-color:var(--seal);background:color-mix(in srgb,var(--seal) 6%,transparent)}
-.drop:focus-visible{outline:2px solid var(--seal);outline-offset:2px}
-.drop .big{font-weight:600;font-size:15.5px}
-.drop .hint{margin-top:2px}
-.chip{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px}
-.chip .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.chip .sz{color:var(--ink-soft);flex:none;margin-left:auto}
+/* ---------- opsi (akordion) ---------- */
+.acc{border-top:1px solid var(--line)}
+.acc:first-of-type{border-top:none}
+.acc>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:var(--s3);min-height:52px;font-weight:700;font-size:.95rem;padding:var(--s2) 0}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary .chev{margin-left:auto;width:18px;height:18px;color:var(--ink-faint);transition:transform .2s var(--ease)}
+.acc[open]>summary .chev{transform:rotate(180deg)}
+.acc>summary .badge{font-size:.72rem;font-weight:600;color:var(--ink-soft);background:var(--surface-2);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+.acc__b{padding:0 0 var(--s4)}
+.acc__b>.field:first-child{margin-top:0}
 
-.check{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:10px;margin-top:10px;cursor:pointer}
-.check input{margin-top:3px;accent-color:var(--seal);width:16px;height:16px;flex:none}
-.check .t{display:block;font-weight:600;font-size:14px}
-.check .d{display:block;color:var(--ink-soft);font-size:12.5px;margin-top:1px}
-.sect{margin:20px 0 2px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--seal)}
-.subopts{margin:6px 0 0 38px}
-.mini{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}
-.mini input{accent-color:var(--seal);width:16px;height:16px}
-.pwbox{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;word-break:break-all;color:var(--ink);user-select:all}
-.pos{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
-.pos label{display:flex;align-items:center;gap:6px;font-size:13px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
-.pos input{accent-color:var(--seal)}
+.check{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s3);border:1px solid var(--line);border-radius:var(--r);margin-top:var(--s2);cursor:pointer;transition:border-color .15s,background .15s}
+.check:hover{border-color:var(--line-strong)}
+.check:has(input:checked){border-color:color-mix(in srgb,var(--primary) 45%,var(--line));background:color-mix(in srgb,var(--primary) 5%,var(--surface))}
+.check input,.mini input{accent-color:var(--primary);width:18px;height:18px;flex:none;margin:2px 0 0}
+.check .t{display:block;font-weight:600;font-size:.9rem}
+.check .d{display:block;color:var(--ink-soft);font-size:.8rem;margin-top:2px}
+.subopts{margin:var(--s2) 0 0 var(--s5);padding-left:var(--s3);border-left:2px solid var(--line)}
+.mini{display:flex;align-items:center;gap:var(--s2);font-size:.88rem;cursor:pointer;min-height:36px}
+.mini input{margin:0}
+.pwbox{font-family:var(--mono);font-size:.82rem;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;word-break:break-all;color:var(--ink);user-select:all}
 
-.msg{margin-top:12px;padding:12px 14px;border-radius:10px;font-size:13.5px}
-.msg.ok{background:var(--ok-bg);color:var(--ok)}
-.msg.bad{background:var(--bad-bg);color:var(--bad)}
-.msg.warn{background:var(--warn-bg);color:var(--warn)}
+.msg{margin-top:var(--s3);padding:var(--s3) var(--s4);border-radius:var(--r);font-size:.86rem;border:1px solid transparent}
+.msg.ok{background:var(--ok-bg);color:var(--ok);border-color:color-mix(in srgb,var(--ok) 25%,transparent)}
+.msg.bad{background:var(--bad-bg);color:var(--bad);border-color:color-mix(in srgb,var(--bad) 25%,transparent)}
+.msg.warn{background:var(--warn-bg);color:var(--warn);border-color:color-mix(in srgb,var(--warn) 25%,transparent)}
 .msg b{font-weight:700}
-.msg[hidden]{display:none}
 
-/* hasil verifikasi */
-.verdict{border-radius:14px;padding:18px;border:1px solid var(--line);margin-top:14px}
-.verdict .h{display:flex;align-items:center;gap:12px}
-.verdict .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:20px;flex:none;color:#fff}
-.verdict .tt{font-size:17px;font-weight:700;line-height:1.25}
-.verdict .ds{font-size:13.5px;color:var(--ink-soft);margin-top:2px}
+/* ---------- dokumen & editor ---------- */
+.drop{border:2px dashed var(--line-strong);border-radius:var(--r-lg);padding:var(--s7) var(--s4);text-align:center;cursor:pointer;background:var(--surface-2);transition:border-color .2s,background .2s;display:flex;flex-direction:column;align-items:center;gap:var(--s2)}
+.drop:hover,.drop.hot{border-color:var(--primary);background:color-mix(in srgb,var(--primary) 6%,var(--surface))}
+.drop__ic{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary);margin-bottom:var(--s2)}
+.drop__ic svg{width:30px;height:30px}
+.drop .big{font-weight:700;font-size:1.05rem}
+.drop .hint{margin:0}
+.drop--sm{padding:var(--s5) var(--s4)}
+input[type=file]{display:none}
+
+.dochead{display:flex;align-items:center;gap:var(--s3);padding:var(--s3);border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.dochead__ic{width:40px;height:40px;border-radius:10px;background:var(--bad-bg);color:var(--bad);display:grid;place-items:center;flex:none;font-size:.68rem;font-weight:700;letter-spacing:.04em}
+.dochead__t{min-width:0;flex:1}
+.dochead .nm{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.92rem}
+.dochead .sz{color:var(--ink-soft);font-size:.8rem}
+
+.style{margin-top:var(--s4);display:grid;gap:var(--s3)}
+.style__row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2) var(--s3)}
+.style__lbl{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);min-width:64px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font-size:.84rem;font-weight:600;color:var(--ink-soft);background:var(--surface);transition:all .15s}
+.seg span svg{width:22px;height:16px}
+.seg label:hover span{border-color:var(--line-strong);color:var(--ink)}
+.seg input:checked+span{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+.seg input:focus-visible+span{outline:2px solid var(--primary);outline-offset:2px}
+.sw{display:flex;gap:6px}
+.sw label{position:relative;width:36px;height:36px;cursor:pointer}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw span{display:block;width:100%;height:100%;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);transition:transform .15s}
+.sw input:checked+span{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--c)}
+.sw input:focus-visible+span{outline:2px solid var(--ink);outline-offset:4px}
+.sw label:hover span{transform:scale(1.08)}
+.toggles{display:flex;flex-wrap:wrap;gap:2px var(--s4)}
+
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin-top:var(--s4);padding:var(--s2);border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
+.toolbar .sep{width:1px;height:28px;background:var(--line);margin:0 2px}
+.pager{display:flex;align-items:center;gap:4px;font-size:.88rem;color:var(--ink-soft)}
+.pager input{width:64px;min-height:36px;padding:4px 6px;text-align:center}
+.tb{width:36px;height:36px;min-height:36px;padding:0;border-radius:9px}
+.presets{display:grid;grid-template-columns:repeat(3,22px);grid-auto-rows:16px;gap:3px;padding:4px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.presets button{border:1px solid var(--line-strong);background:var(--surface-2);border-radius:3px;padding:0;cursor:pointer;transition:background .15s}
+.presets button:hover{background:var(--primary);border-color:var(--primary)}
+.presets button:disabled{opacity:.35;cursor:not-allowed;background:var(--surface-2)}
+.tb-grow{flex:1}
+
+.stage{position:relative;margin-top:var(--s3);background:var(--stage);border-radius:var(--r);padding:var(--s4);display:flex;justify-content:center;overflow:hidden;min-height:240px;background-image:radial-gradient(color-mix(in srgb,var(--ink) 9%,transparent) 1px,transparent 1px);background-size:16px 16px}
+.page{position:relative;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12),0 12px 32px -12px rgba(0,0,0,.35);border-radius:2px;flex:none;user-select:none;-webkit-user-select:none}
+.page canvas{display:block;width:100%;height:100%;border-radius:2px}
+.page__load{position:absolute;inset:0;display:grid;place-items:center;color:#4d5867;font-size:.85rem}
+.guide{position:absolute;pointer-events:none;background:#e0418a;opacity:0;transition:opacity .12s}
+.guide.on{opacity:.9}
+.guide--v{top:0;bottom:0;width:1px}
+.guide--h{left:0;right:0;height:1px}
+.stamp{position:absolute;touch-action:none;cursor:grab;border-radius:3px;outline:1.5px dashed transparent;outline-offset:3px;transition:outline-color .15s,box-shadow .15s}
+.stamp img{display:block;width:100%;height:100%;pointer-events:none;-webkit-user-drag:none}
+.stamp:hover{outline-color:color-mix(in srgb,var(--primary) 60%,transparent)}
+.stamp.is-sel{outline:1.5px solid #0d6b5e}
+.stamp:focus-visible{outline:2px solid #e0418a}
+.stamp.is-drag{cursor:grabbing;box-shadow:0 10px 24px -8px rgba(0,0,0,.45)}
+.stamp__h{position:absolute;right:-9px;bottom:-9px;width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid #0d6b5e;cursor:nwse-resize;opacity:0;transition:opacity .15s}
+.stamp__x{position:absolute;right:-12px;top:-12px;width:24px;height:24px;border-radius:50%;border:none;background:#b0352c;color:#fff;display:grid;place-items:center;cursor:pointer;opacity:0;transition:opacity .15s;padding:0}
+.stamp__x svg{width:12px;height:12px}
+.stamp__h::after,.stamp__x::after{content:"";position:absolute;inset:-12px}
+.stamp.is-sel .stamp__h,.stamp.is-sel .stamp__x,.stamp:focus-within .stamp__x{opacity:1}
+@media (hover:none){.stamp__h{width:22px;height:22px;right:-11px;bottom:-11px}}
+
+.thumbs{display:flex;gap:var(--s2);overflow-x:auto;padding:var(--s3) 2px var(--s2);scroll-snap-type:x proximity;scrollbar-width:thin}
+.thumb{position:relative;flex:none;width:68px;border:2px solid transparent;border-radius:8px;padding:3px;background:none;cursor:pointer;scroll-snap-align:center;color:var(--ink-soft);font:inherit;font-size:.72rem;font-weight:600;transition:border-color .15s}
+.thumb canvas{display:block;width:100%;background:#fff;border-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.thumb .n{display:block;text-align:center;margin-top:3px}
+.thumb[aria-current="true"]{border-color:var(--primary);color:var(--primary)}
+.thumb:hover{border-color:var(--line-strong)}
+.thumb .cnt{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-size:.68rem;box-shadow:0 0 0 2px var(--surface)}
+.tips{display:flex;flex-wrap:wrap;gap:var(--s1) var(--s4);font-size:.78rem;color:var(--ink-soft);margin:var(--s2) 0 0;padding:0;list-style:none}
+.tips kbd{font-family:var(--mono);font-size:.72rem;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 5px;background:var(--surface);color:var(--ink)}
+.status{font-size:.84rem;font-weight:600;color:var(--ink-soft);margin:var(--s2) 0 0}
+
+/* ---------- bilah aksi ---------- */
+.act{position:sticky;bottom:var(--s2);z-index:20;padding:var(--s3);border-radius:var(--r-lg);background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);box-shadow:var(--shadow-lg)}
+.act__row{display:flex;flex-direction:column;gap:var(--s3)}
+.act__sum{font-size:.82rem;color:var(--ink-soft);display:none;flex-wrap:wrap;gap:6px}
+.act__sum span{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line)}
+.act__sum svg{width:12px;height:12px;color:var(--primary)}
+.act .btn--big{margin:0}
+.act .msg{max-height:40vh;overflow:auto}
+@media(min-width:720px){
+  .act{padding:var(--s4)}
+  .act__row{flex-direction:row;align-items:center}
+  .act__sum{flex:1;display:flex}
+  .act .btn--big{width:auto;padding:0 var(--s6)}
+}
+
+/* ---------- verifikasi ---------- */
+.vwrap{max-width:820px;margin:0 auto}
+.verdict{border-radius:var(--r-lg);padding:var(--s5);border:1px solid var(--line);margin-top:var(--s4)}
+.verdict .h{display:flex;align-items:center;gap:var(--s3)}
+.verdict .ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-weight:700;font-size:1.2rem;flex:none;color:#fff}
+.verdict .tt{font-size:1.08rem;font-weight:700;line-height:1.25}
+.verdict .ds{font-size:.88rem;color:var(--ink-soft);margin-top:2px}
 .verdict.ok{background:var(--ok-bg);border-color:color-mix(in srgb,var(--ok) 35%,transparent)} .verdict.ok .ic{background:var(--ok)}
 .verdict.bad{background:var(--bad-bg);border-color:color-mix(in srgb,var(--bad) 35%,transparent)} .verdict.bad .ic{background:var(--bad)}
 .verdict.warn{background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 35%,transparent)} .verdict.warn .ic{background:var(--warn)}
-dl.kv{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:6px 14px;margin:14px 0 0;font-size:13.5px}
-dl.kv dt{color:var(--ink-soft)} dl.kv dd{margin:0;word-break:break-word}
-.explain{margin-top:18px;font-size:13.5px;color:var(--ink-soft)}
-.explain p{margin:0 0 8px}
+:root[data-theme="dark"] .verdict .ic{color:#0b1013}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .verdict .ic{color:#0b1013}}
+dl.kv{display:grid;grid-template-columns:1fr;gap:2px var(--s4);margin:var(--s4) 0 0;font-size:.88rem}
+@media(min-width:520px){dl.kv{grid-template-columns:minmax(130px,auto) 1fr;gap:8px var(--s4)}}
+dl.kv dt{color:var(--ink-soft)} dl.kv dd{margin:0 0 var(--s2);word-break:break-word}
+@media(min-width:520px){dl.kv dd{margin:0}}
+.explain{margin-top:var(--s5);font-size:.86rem;color:var(--ink-soft)}
+.explain p{margin:0 0 var(--s2)}
 .explain b{color:var(--ink)}
-.empty{color:var(--ink-soft);font-size:14px;padding:30px 10px;text-align:center}
+.empty{color:var(--ink-soft);font-size:.92rem;padding:var(--s6) var(--s3);text-align:center;display:flex;flex-direction:column;align-items:center;gap:var(--s3)}
+.empty svg{width:44px;height:44px;color:var(--line-strong)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion: reduce){.spin{animation:none}}
-.note{margin-top:22px;border:1px solid var(--line);border-left:3px solid var(--seal);border-radius:10px;padding:14px 16px;background:var(--card);font-size:13px;color:var(--ink-soft)}
-.note p{margin:0 0 6px} .note p:last-child{margin:0} .note b{color:var(--ink)}
-input[type=file]{display:none}
+
+.info{display:grid;grid-template-columns:1fr;gap:var(--s4);margin-top:var(--s6)}
+@media(min-width:860px){.info{grid-template-columns:1fr 1fr}}
+.info article{padding:var(--s5);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
+.info h2{font-size:1rem;margin:0 0 var(--s2);display:flex;align-items:center;gap:var(--s2)}
+.info h2 svg{width:18px;height:18px;color:var(--primary)}
+.info p{margin:0;font-size:.88rem;color:var(--ink-soft);max-width:70ch}
+.info b{color:var(--ink)}
+.foot{max-width:1320px;margin:0 auto;padding:0 var(--s4) var(--s6);font-size:.8rem;color:var(--ink-faint);display:flex;align-items:center;gap:var(--s2)}
+.foot svg{width:14px;height:14px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
+  .spin{animation:none}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="brand">
-    <div class="seal">§</div>
-    <div>
-      <h1>Segel Digital</h1>
-      <p class="sub">Tanamkan tanda tangan elektronik, enkripsi AES-256, dan batasan izin di dalam PDF — tanpa watermark. Setiap perubahan sekecil apa pun membuat tanda tangannya tidak sah. Semua diproses di perangkat Anda.</p>
+<a class="skip" href="#main">Langsung ke konten</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-lock" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h1.5A1.5 1.5 0 0 1 20 11.5v9A1.5 1.5 0 0 1 18.5 22h-13A1.5 1.5 0 0 1 4 20.5v-9A1.5 1.5 0 0 1 5.5 10H7Zm2 0h6V7a3 3 0 0 0-6 0v3Z"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4Zm9.5-13.5 4 4"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3 4.5 6v5.5c0 4.6 3.1 8.4 7.5 9.5 4.4-1.1 7.5-4.9 7.5-9.5V6L12 3Zm-3.2 9 2.2 2.2 4.2-4.4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Zm0 0v5h5M12 17v-6m-3 3 3-3 3 3"/></symbol>
+  <symbol id="i-layout" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 4h16v16H4zM4 9h16M9 9v11"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-left" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m15 6-6 6 6 6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 9h10v10H9zM5 15V5h10"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7"/></symbol>
+  <symbol id="i-device" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 5h16v11H4zM2 20h20"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path fill="currentColor" stroke="none" d="M12 4a8 8 0 0 1 0 16Z"/></g></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v18M5 21h14M6 7h12M6 7l-3 7a3 3 0 0 0 6 0L6 7Zm12 0-3 7a3 3 0 0 0 6 0l-3-7Z"/></symbol>
+  <symbol id="i-cogs" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm7.4-1.6.1-1.4-.1-1.4 2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.4-1.4L14.2 2h-4.4l-.4 2.6A7 7 0 0 0 7 6l-2.4-1-2 3.4 2 1.6L4.5 12l.1 1.4-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.4 1.4l.4 2.6h4.4l.4-2.6a7 7 0 0 0 2.4-1.4l2.4 1 2-3.4-2-1.6Z"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="top__in">
+    <a class="brand" href="./" aria-label="Segel Digital, beranda" style="color:inherit;text-decoration:none">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path fill="#fff" fill-rule="evenodd" d="M7 10V7a5 5 0 0 1 10 0v3h1.5A1.5 1.5 0 0 1 20 11.5v9A1.5 1.5 0 0 1 18.5 22h-13A1.5 1.5 0 0 1 4 20.5v-9A1.5 1.5 0 0 1 5.5 10H7Zm2 0h6V7a3 3 0 0 0-6 0v3Z"/><circle cx="12" cy="15.4" r="1.7" fill="#f0b542"/><path d="M12 16.4v2.4" stroke="#f0b542" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </span>
+      <span style="min-width:0">
+        <span class="brand__t" style="display:block">Segel Digital</span>
+        <span class="brand__s" style="display:block">Tanda tangan elektronik di dalam PDF</span>
+      </span>
+    </a>
+    <div class="tabs" role="tablist" aria-label="Mode">
+      <button class="tab" role="tab" id="tabSign" aria-selected="true" aria-controls="pSign"><svg aria-hidden="true"><use href="#i-pen"/></svg>Tanda tangani</button>
+      <button class="tab" role="tab" id="tabVerify" aria-selected="false" aria-controls="pVerify" tabindex="-1"><svg aria-hidden="true"><use href="#i-shield"/></svg>Periksa keaslian</button>
+    </div>
+    <div class="top__tools">
+      <span class="pill"><svg aria-hidden="true"><use href="#i-device"/></svg>Diproses di perangkat Anda</span>
+      <button class="iconbtn" id="btnTheme" type="button" aria-label="Tema: otomatis"><svg aria-hidden="true"><use href="#i-auto"/></svg></button>
     </div>
   </div>
+</header>
 
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tabSign" aria-selected="true" aria-controls="pSign">Tanda tangani</button>
-    <button class="tab" role="tab" id="tabVerify" aria-selected="false" aria-controls="pVerify">Periksa keaslian</button>
-  </div>
-
+<main class="wrap" id="main">
   <!-- ================= TANDA TANGANI ================= -->
   <section class="panel" id="pSign" role="tabpanel" aria-labelledby="tabSign">
-    <div class="grid">
-      <!-- identitas -->
-      <div class="card pad" id="idPanel">
-        <h2><span class="step">1</span>Identitas penanda tangan</h2>
-        <p class="lead">Sertifikat digital milik Anda. Buat sekali, lalu pakai untuk semua dokumen.</p>
+    <div class="intro">
+      <div>
+        <h1>Segel PDF Anda, <em>tata capnya sesuka hati.</em></h1>
+        <p>Tanda tangan digital yang tertanam di dalam file, enkripsi AES-256, dan cap QR yang bisa diseret ke posisi mana pun di halaman mana pun. File tidak pernah meninggalkan perangkat Anda.</p>
+      </div>
+      <ul class="feats" aria-label="Fitur">
+        <li><svg aria-hidden="true"><use href="#i-pen"/></svg>PKCS#7 / PAdES dasar</li>
+        <li><svg aria-hidden="true"><use href="#i-lock"/></svg>AES-256</li>
+        <li><svg aria-hidden="true"><use href="#i-layout"/></svg>Cap bebas tata letak</li>
+      </ul>
+    </div>
 
-        <div id="idNone">
-          <div class="field"><label class="l" for="nName">Nama lengkap</label><input id="nName" type="text" autocomplete="name" value="Dr. Joseph Teguh Santoso, M.Kom"></div>
-          <div class="field"><label class="l" for="nOrg">Instansi / perusahaan <span style="font-weight:400;color:var(--ink-soft)">(opsional)</span></label><input id="nOrg" type="text" autocomplete="organization" value="Universitas STEKOM"></div>
-          <div class="field"><label class="l" for="nMail">Email <span style="font-weight:400;color:var(--ink-soft)">(opsional)</span></label><input id="nMail" type="email" autocomplete="email"></div>
-          <div class="field row2">
-            <div><label class="l" for="nPw">Kata sandi sertifikat</label><input id="nPw" type="password" autocomplete="new-password"></div>
-            <div><label class="l" for="nPw2">Ulangi</label><input id="nPw2" type="password" autocomplete="new-password"></div>
+    <div class="ws">
+      <div class="ws__side">
+        <!-- identitas -->
+        <div class="card pad" id="cardId">
+          <div class="card__h"><span class="step">1</span><h2>Identitas penanda tangan</h2></div>
+          <p class="lead">Sertifikat digital milik Anda. Buat sekali, pakai untuk semua dokumen.</p>
+
+          <div id="idNone">
+            <div class="field"><label class="l" for="nName">Nama lengkap</label><input id="nName" type="text" autocomplete="name" value="Dr. Joseph Teguh Santoso, M.Kom"></div>
+            <div class="field"><label class="l" for="nOrg">Instansi / perusahaan <span class="opt">(opsional)</span></label><input id="nOrg" type="text" autocomplete="organization" value="Universitas STEKOM"></div>
+            <div class="field"><label class="l" for="nMail">Email <span class="opt">(opsional)</span></label><input id="nMail" type="email" autocomplete="email" inputmode="email"></div>
+            <div class="field row2">
+              <div><label class="l" for="nPw">Kata sandi sertifikat</label><input id="nPw" type="password" autocomplete="new-password" aria-describedby="nPwHint"></div>
+              <div><label class="l" for="nPw2">Ulangi</label><input id="nPw2" type="password" autocomplete="new-password"></div>
+            </div>
+            <p class="hint" id="nPwHint">Minimal 6 karakter. Melindungi kunci tanda tangan Anda dan tidak bisa dipulihkan bila lupa.</p>
+            <div class="btns">
+              <button class="btn btn--primary" id="btnCreate" type="button">Buat sertifikat</button>
+              <button class="btn" id="btnImport" type="button">Pakai file .p12 / .pfx</button>
+              <input type="file" id="fImport" accept=".p12,.pfx,.zip,application/x-pkcs12,application/zip">
+            </div>
+            <div class="msg" id="idMsg" role="status" hidden></div>
           </div>
-          <p class="hint">Kata sandi melindungi kunci tanda tangan Anda. Tidak bisa dipulihkan bila lupa.</p>
-          <div class="btns">
-            <button class="btn primary" id="btnCreate">Buat sertifikat</button>
-            <button class="btn" id="btnImport">Pakai file sertifikat (.p12 / .pfx)</button>
-            <input type="file" id="fImport" accept=".p12,.pfx,.zip,application/x-pkcs12,application/zip">
+
+          <div id="idHave" hidden>
+            <div class="idcard">
+              <div class="av" id="idAv" aria-hidden="true">?</div>
+              <div style="min-width:0">
+                <div class="nm" id="idName"></div>
+                <div class="meta" id="idMeta"></div>
+                <div class="fp" id="idFp"></div>
+              </div>
+            </div>
+            <div id="unlockBox">
+              <div class="field"><label class="l" for="uPw">Kata sandi sertifikat</label><input id="uPw" type="password" autocomplete="current-password"></div>
+              <div class="btns"><button class="btn btn--primary" id="btnUnlock" type="button"><svg aria-hidden="true"><use href="#i-lock"/></svg>Buka kunci</button></div>
+            </div>
+            <div class="msg ok" id="unlocked" hidden><b>Siap menandatangani.</b> Kunci terbuka selama halaman ini terbuka.</div>
+            <div class="btns">
+              <button class="btn btn--sm" id="btnExport" type="button"><svg aria-hidden="true"><use href="#i-down"/></svg>Unduh cadangan</button>
+              <button class="btn btn--ghost btn--sm" id="btnForget" type="button">Ganti identitas</button>
+            </div>
+            <p class="hint">Cadangan (.zip) berisi file .p12 untuk dipakai di perangkat lain dan file .cer yang bisa dibagikan agar penerima mempercayai tanda tangan Anda.</p>
+            <div class="msg" id="idMsg2" role="status" hidden></div>
           </div>
-          <div class="msg" id="idMsg" hidden></div>
         </div>
 
-        <div id="idHave" hidden>
-          <div class="idcard">
-            <div class="av" id="idAv">?</div>
-            <div style="min-width:0">
-              <div class="nm" id="idName"></div>
-              <div class="meta" id="idMeta"></div>
-              <div class="fp" id="idFp"></div>
+        <!-- opsi -->
+        <div class="card pad" id="cardOpts">
+          <div class="card__h"><span class="step">3</span><h2>Detail &amp; proteksi</h2></div>
+          <p class="lead">Keterangan yang tertanam di tanda tangan dan lapisan pengaman file.</p>
+
+          <details class="acc" open>
+            <summary>Detail tanda tangan<svg class="chev" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <div class="acc__b">
+              <div class="field row2">
+                <div><label class="l" for="oJab">Jabatan</label><input id="oJab" type="text" value="Rektor"></div>
+                <div><label class="l" for="oLoc">Lokasi</label><input id="oLoc" type="text" value="Semarang"></div>
+              </div>
+              <div class="field"><label class="l" for="oReason">Alasan</label><input id="oReason" type="text" value="Menyetujui dan mengesahkan dokumen ini"></div>
             </div>
-          </div>
-          <div id="unlockBox">
-            <div class="field"><label class="l" for="uPw">Kata sandi sertifikat</label><input id="uPw" type="password" autocomplete="current-password"></div>
-            <div class="btns"><button class="btn primary" id="btnUnlock">Buka kunci</button></div>
-          </div>
-          <div class="msg ok" id="unlocked" hidden><b>Siap menandatangani.</b> Kunci terbuka selama halaman ini terbuka.</div>
-          <div class="btns">
-            <button class="btn" id="btnExport">Unduh cadangan sertifikat</button>
-            <button class="btn link" id="btnForget">Ganti identitas</button>
-          </div>
-          <p class="hint">Simpan cadangan (.zip) di tempat aman. Berisi file .p12 untuk dipakai lagi di perangkat lain, dan file .cer yang bisa Anda bagikan agar penerima bisa mempercayai tanda tangan Anda.</p>
-          <div class="msg" id="idMsg2" hidden></div>
+          </details>
+
+          <details class="acc">
+            <summary>Proteksi <span class="badge" id="protBadge">3 aktif</span><svg class="chev" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <div class="acc__b">
+              <label class="check"><input type="checkbox" id="oCertify" checked>
+                <span><span class="t">Kunci dokumen dari perubahan</span><span class="d">Adobe Reader menonaktifkan alat edit dan menandai dokumen "tersertifikasi, tidak ada perubahan diizinkan".</span></span></label>
+
+              <label class="check"><input type="checkbox" id="oEncrypt" checked>
+                <span><span class="t">Enkripsi AES-256 + batasan izin</span><span class="d">Seperti "Restrict Editing": edit, salin teks, ekstrak, anotasi, isi formulir, dan susun ulang halaman ditolak. Kunci pemilik dibuat acak.</span></span></label>
+              <div id="encOpts" class="subopts">
+                <label class="mini"><input type="checkbox" id="oPrint" checked> Izinkan mencetak</label>
+                <div class="field"><label class="l" for="oOpenPw">Kata sandi untuk membuka <span class="opt">(opsional)</span></label><input id="oOpenPw" type="password" autocomplete="new-password" aria-describedby="oOpenPwHint"><p class="hint" id="oOpenPwHint">Kosongkan agar siapa pun bisa membaca.</p></div>
+              </div>
+
+              <label class="check"><input type="checkbox" id="oScan" checked>
+                <span><span class="t">Ubah halaman jadi gambar (seperti hasil pindai)</span><span class="d">Teks asli diganti gambar halaman yang tetap jelas. "Convert to Word" dan editor online hanya mendapat gambar.</span></span></label>
+              <div id="scanOpts" class="subopts">
+                <label class="l" for="oScanQ">Resolusi gambar</label>
+                <select id="oScanQ">
+                  <option value="2.0">150 dpi — file ringan</option>
+                  <option value="2.78" selected>200 dpi — tajam (disarankan)</option>
+                  <option value="4.17">300 dpi — kualitas cetak, file besar</option>
+                </select>
+                <label class="mini" style="margin-top:10px"><input type="checkbox" id="oAntiOcr"> Pola pengaman anti-OCR <span class="opt">(halaman bergaris)</span></label>
+                <p class="hint">Garis halus yang memotong huruf: mesin OCR gagal membaca, mata manusia tetap membaca normal.</p>
+                <div id="antiOcrOpts" style="margin-top:8px" hidden>
+                  <label class="sr" for="oAntiStr">Kekuatan anti-OCR</label>
+                  <select id="oAntiStr">
+                    <option value="kuat">Kuat — OCR gagal total, halaman tampak bergaris</option>
+                    <option value="sedang" selected>Sedang — sedikit bergaris, OCR pulih sebagian</option>
+                    <option value="ringan">Ringan — nyaris tak terlihat, kosmetik saja</option>
+                  </select>
+                  <div class="hint" id="antiWarn" style="margin-top:6px"></div>
+                </div>
+              </div>
+            </div>
+          </details>
+
+          <details class="acc">
+            <summary>Catatan kaki halaman<svg class="chev" aria-hidden="true"><use href="#i-chev"/></svg></summary>
+            <div class="acc__b">
+              <label class="check"><input type="checkbox" id="oFooter" checked>
+                <span><span class="t">Catatan tanda tangan di kaki setiap halaman</span><span class="d">Tulisan kecil di bawah halaman, seperti pada dokumen resmi.</span></span></label>
+              <div class="field" id="footerWrap"><label class="sr" for="oFooterText">Teks catatan kaki</label><textarea id="oFooterText" rows="5"></textarea></div>
+              <label class="mini" style="margin-top:8px"><input type="checkbox" id="oProtect" checked> Sertakan larangan menyalin/OCR + dasar hukum</label>
+            </div>
+          </details>
         </div>
       </div>
 
-      <!-- dokumen -->
-      <div class="card pad">
-        <h2><span class="step">2</span>Dokumen</h2>
-        <p class="lead">PDF yang akan ditandatangani.</p>
-        <div class="drop" id="sDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk ditandatangani">
-          <div class="big">Letakkan PDF di sini</div>
-          <div class="hint">atau klik untuk memilih</div>
-        </div>
-        <input type="file" id="sFile" accept="application/pdf,.pdf">
-        <div class="chip" id="sChip" hidden><span class="nm" id="sName"></span><span class="sz" id="sSize"></span></div>
+      <div class="ws__main">
+        <!-- dokumen + tata letak -->
+        <div class="card pad" id="cardDoc">
+          <div class="card__h"><span class="step">2</span><h2>Dokumen &amp; tata letak cap</h2></div>
+          <p class="lead">Pilih PDF, lalu seret cap tanda tangan ke mana saja. Tambahkan cap di halaman lain sesuai kebutuhan.</p>
 
-        <div class="field row2">
-          <div><label class="l" for="oJab">Jabatan</label><input id="oJab" type="text" value="Rektor"></div>
-          <div><label class="l" for="oLoc">Lokasi</label><input id="oLoc" type="text" value="Semarang"></div>
-        </div>
-        <div class="field"><label class="l" for="oReason">Alasan</label><input id="oReason" type="text" value="Menyetujui dan mengesahkan dokumen ini"></div>
+          <div class="drop" id="sDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk ditandatangani">
+            <span class="drop__ic" aria-hidden="true"><svg><use href="#i-file"/></svg></span>
+            <span class="big">Letakkan PDF di sini</span>
+            <span class="hint">atau klik untuk memilih file dari perangkat</span>
+          </div>
+          <input type="file" id="sFile" accept="application/pdf,.pdf">
 
-        <div class="sect">Proteksi</div>
+          <div id="editor" hidden>
+            <div class="dochead">
+              <span class="dochead__ic" aria-hidden="true">PDF</span>
+              <div class="dochead__t"><div class="nm" id="sName"></div><div class="sz" id="sSize"></div></div>
+              <button class="btn btn--sm" id="btnChange" type="button">Ganti file</button>
+            </div>
 
-        <label class="check"><input type="checkbox" id="oCertify" checked>
-          <span><span class="t">Kunci dokumen dari perubahan</span><span class="d">Adobe Reader menonaktifkan alat edit dan menandai dokumen "tersertifikasi, tidak ada perubahan diizinkan".</span></span></label>
+            <div class="style" role="group" aria-label="Gaya cap">
+              <div class="style__row">
+                <label class="mini" style="font-weight:600"><input type="checkbox" id="oStamp" checked> Tampilkan cap terlihat + kode QR</label>
+              </div>
+              <div id="stampTools">
+                <div class="style__row" role="radiogroup" aria-label="Model cap">
+                  <span class="style__lbl" aria-hidden="true">Model</span>
+                  <div class="seg">
+                    <label><input type="radio" name="layout" value="qr-kiri" checked><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x=".5" y=".5" width="21" height="15" rx="2" fill="none" stroke="currentColor"/><rect x="3" y="3" width="7" height="10" fill="currentColor"/><path d="M12 5h7M12 8h6M12 11h4" stroke="currentColor"/></svg>QR kiri</span></label>
+                    <label><input type="radio" name="layout" value="qr-kanan"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x=".5" y=".5" width="21" height="15" rx="2" fill="none" stroke="currentColor"/><rect x="12" y="3" width="7" height="10" fill="currentColor"/><path d="M3 5h7M3 8h6M3 11h4" stroke="currentColor"/></svg>QR kanan</span></label>
+                    <label><input type="radio" name="layout" value="vertikal"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x="4.5" y=".5" width="13" height="15" rx="2" fill="none" stroke="currentColor"/><rect x="8" y="2.5" width="6" height="6" fill="currentColor"/><path d="M7 11h8M8 13h6" stroke="currentColor"/></svg>Tegak</span></label>
+                    <label><input type="radio" name="layout" value="qr"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x="5.5" y=".5" width="11" height="15" rx="2" fill="none" stroke="currentColor"/><rect x="8" y="3" width="6" height="7" fill="currentColor"/><path d="M8 12.5h6" stroke="currentColor"/></svg>QR saja</span></label>
+                    <label><input type="radio" name="layout" value="teks"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x=".5" y="2.5" width="21" height="11" rx="2" fill="none" stroke="currentColor"/><rect x="3" y="5.5" width="3.5" height="4" rx=".8" fill="currentColor"/><path d="M9 6h9M9 9.5h6" stroke="currentColor"/></svg>Teks saja</span></label>
+                  </div>
+                </div>
+                <div class="style__row" style="margin-top:12px">
+                  <span class="style__lbl" id="lblColor">Warna</span>
+                  <div class="sw" role="radiogroup" aria-labelledby="lblColor">
+                    <label title="Hijau segel"><input type="radio" name="color" value="#0d6b5e" checked aria-label="Hijau segel"><span style="--c:#0d6b5e"></span></label>
+                    <label title="Biru dinas"><input type="radio" name="color" value="#1d4f91" aria-label="Biru dinas"><span style="--c:#1d4f91"></span></label>
+                    <label title="Merah marun"><input type="radio" name="color" value="#8f2431" aria-label="Merah marun"><span style="--c:#8f2431"></span></label>
+                    <label title="Cokelat lak"><input type="radio" name="color" value="#8a5424" aria-label="Cokelat lak"><span style="--c:#8a5424"></span></label>
+                    <label title="Hitam"><input type="radio" name="color" value="#1f2630" aria-label="Hitam"><span style="--c:#1f2630"></span></label>
+                  </div>
+                </div>
+                <div class="style__row" style="margin-top:8px;align-items:flex-start">
+                  <span class="style__lbl" style="padding-top:8px">Isi</span>
+                  <div class="toggles">
+                    <label class="mini"><input type="checkbox" id="sjJab" checked> Jabatan</label>
+                    <label class="mini"><input type="checkbox" id="sjOrg" checked> Instansi</label>
+                    <label class="mini"><input type="checkbox" id="sjDate" checked> Tanggal</label>
+                    <label class="mini"><input type="checkbox" id="sjId" checked> ID dokumen</label>
+                    <label class="mini"><input type="checkbox" id="sjBorder" checked> Bingkai</label>
+                    <label class="mini"><input type="checkbox" id="sjBg" checked> Latar putih</label>
+                  </div>
+                </div>
+                <div class="field" style="max-width:420px"><label class="l" for="sjHead">Judul cap</label><input id="sjHead" type="text" maxlength="60" value="Ditandatangani secara elektronik"></div>
+              </div>
+            </div>
 
-        <label class="check"><input type="checkbox" id="oEncrypt" checked>
-          <span><span class="t">Enkripsi AES-256 + batasan izin</span><span class="d">Seperti "Restrict Editing": edit, salin teks, ekstrak, anotasi, isi formulir, dan susun ulang halaman ditolak. Kunci pemiliknya dibuat acak dan panjang.</span></span></label>
-        <div id="encOpts" class="subopts">
-          <label class="mini"><input type="checkbox" id="oPrint" checked> Izinkan mencetak</label>
-          <div class="field"><label class="l" for="oOpenPw">Kata sandi untuk membuka <span style="font-weight:400;color:var(--ink-soft)">(opsional — kosongkan agar siapa pun bisa membaca)</span></label><input id="oOpenPw" type="password" autocomplete="new-password"></div>
-        </div>
+            <div class="toolbar" role="toolbar" aria-label="Alat tata letak" id="toolbar">
+              <div class="pager">
+                <button class="btn tb" id="pgPrev" type="button" aria-label="Halaman sebelumnya"><svg aria-hidden="true"><use href="#i-left"/></svg></button>
+                <label class="sr" for="pgNum">Nomor halaman</label>
+                <input id="pgNum" type="number" min="1" value="1" inputmode="numeric">
+                <span>/ <span id="pgTotal">1</span></span>
+                <button class="btn tb" id="pgNext" type="button" aria-label="Halaman berikutnya"><svg aria-hidden="true"><use href="#i-right"/></svg></button>
+              </div>
+              <span class="sep" aria-hidden="true"></span>
+              <button class="btn btn--sm" id="btnAddStamp" type="button"><svg aria-hidden="true"><use href="#i-plus"/></svg>Tambah cap</button>
+              <button class="btn btn--sm" id="btnCopyAll" type="button" title="Salin cap terpilih ke semua halaman dengan posisi yang sama"><svg aria-hidden="true"><use href="#i-copy"/></svg>Ke semua halaman</button>
+              <button class="btn btn--sm btn--danger" id="btnDelStamp" type="button"><svg aria-hidden="true"><use href="#i-trash"/></svg>Hapus</button>
+              <span class="tb-grow"></span>
+              <div class="presets" role="group" aria-label="Posisi cepat cap terpilih" id="presets">
+                <button type="button" data-p="tl" aria-label="Kiri atas"></button><button type="button" data-p="tc" aria-label="Tengah atas"></button><button type="button" data-p="tr" aria-label="Kanan atas"></button>
+                <button type="button" data-p="ml" aria-label="Kiri tengah"></button><button type="button" data-p="mc" aria-label="Tengah"></button><button type="button" data-p="mr" aria-label="Kanan tengah"></button>
+                <button type="button" data-p="bl" aria-label="Kiri bawah"></button><button type="button" data-p="bc" aria-label="Tengah bawah"></button><button type="button" data-p="br" aria-label="Kanan bawah"></button>
+              </div>
+            </div>
 
-        <label class="check"><input type="checkbox" id="oScan" checked>
-          <span><span class="t">Ubah halaman jadi gambar (seperti hasil pindai)</span><span class="d">Teks asli dihapus dan diganti gambar halaman yang tampak normal dan jelas. "Convert to Word" dan editor online hanya mendapat gambar, bukan teks yang bisa diedit. Aktifkan anti-OCR di bawah hanya bila Anda rela halaman tampak bergaris.</span></span></label>
-        <div id="scanOpts" class="subopts">
-          <label class="l" for="oScanQ">Resolusi gambar</label>
-          <select id="oScanQ">
-            <option value="2.0">150 dpi — file ringan</option>
-            <option value="2.78" selected>200 dpi — tajam (disarankan)</option>
-            <option value="4.17">300 dpi — kualitas cetak, file besar</option>
-          </select>
-          <label class="mini" style="margin-top:10px"><input type="checkbox" id="oAntiOcr"> Pola pengaman anti-OCR <span style="font-weight:400;color:var(--ink-soft)">(membuat halaman bergaris)</span></label>
-          <div class="hint" style="margin-left:24px">Garis halus yang memotong huruf: mesin OCR gagal membaca (teruji &lt;1% kata terbaca), mata manusia tetap membaca normal.</div>
-          <div id="antiOcrOpts" style="margin-left:24px;margin-top:6px;display:none">
-            <select id="oAntiStr">
-              <option value="kuat">Kuat — OCR gagal total (&lt;4% kata), halaman tampak bergaris</option>
-              <option value="sedang" selected>Sedang — sedikit bergaris, OCR bisa dipulihkan sebagian</option>
-              <option value="ringan">Ringan — nyaris tak terlihat, hanya kosmetik</option>
-            </select>
-            <div class="hint" id="antiWarn" style="margin-top:6px"></div>
+            <div class="stage" id="stage">
+              <div class="page" id="page">
+                <canvas id="pageCv" aria-hidden="true"></canvas>
+                <div class="page__load" id="pageLoad"><span><span class="spin"></span>Memuat halaman…</span></div>
+                <div class="guide guide--v" id="gV"></div>
+                <div class="guide guide--h" id="gH"></div>
+                <div id="stampLayer"></div>
+              </div>
+            </div>
+            <div class="thumbs" id="thumbs" aria-label="Daftar halaman"></div>
+            <ul class="tips">
+              <li>Seret cap untuk memindahkan, tarik titik sudut untuk mengubah ukuran.</li>
+              <li><kbd>←↑→↓</kbd> geser · <kbd>Shift</kbd> lebih jauh</li>
+              <li><kbd>+</kbd> <kbd>−</kbd> ukuran · <kbd>Del</kbd> hapus</li>
+              <li><kbd>Alt</kbd> saat menyeret = tanpa magnet</li>
+            </ul>
+            <p class="status" id="stampStatus" aria-live="polite"></p>
           </div>
         </div>
 
-        <div class="sect">Tampilan</div>
-        <label class="check"><input type="checkbox" id="oStamp" checked>
-          <span><span class="t">Tampilkan cap tanda tangan + kode QR</span><span class="d">Kotak kecil berisi nama, waktu, dan QR, seperti pada surat dinas.</span></span></label>
-        <div id="stampOpts">
-          <div class="field row2">
-            <div><label class="l" for="oPage">Halaman</label>
-              <select id="oPage"><option value="last">Halaman terakhir</option><option value="first">Halaman pertama</option></select></div>
-            <div><label class="l">Posisi</label>
-              <div class="pos" role="radiogroup" aria-label="Posisi cap">
-                <label><input type="radio" name="pos" value="tl">Kiri atas</label>
-                <label><input type="radio" name="pos" value="tr">Kanan atas</label>
-                <label><input type="radio" name="pos" value="bl">Kiri bawah</label>
-                <label><input type="radio" name="pos" value="br" checked>Kanan bawah</label>
-              </div></div>
+        <!-- aksi -->
+        <div class="act" id="actBar">
+          <div class="act__row">
+            <div class="act__sum" id="actSum" aria-label="Ringkasan lapisan"></div>
+            <button class="btn btn--primary btn--big" id="btnSign" type="button"><svg aria-hidden="true"><use href="#i-pen"/></svg>Tanda tangani dokumen</button>
           </div>
+          <div class="msg" id="signMsg" role="status" hidden></div>
+          <div class="btns" id="dlWrap" hidden><button class="btn btn--primary" id="btnDl" type="button"><svg aria-hidden="true"><use href="#i-down"/></svg>Unduh PDF bertanda tangan</button></div>
         </div>
-
-        <label class="check"><input type="checkbox" id="oFooter" checked>
-          <span><span class="t">Catatan tanda tangan di kaki setiap halaman</span><span class="d">Tulisan kecil di bawah halaman, seperti keterangan pada contoh dokumen resmi.</span></span></label>
-        <div class="field" id="footerWrap"><textarea id="oFooterText" rows="4"></textarea></div>
-        <label class="mini" style="margin-top:8px"><input type="checkbox" id="oProtect" checked> Sertakan pernyataan larangan menyalin/OCR + dasar hukum</label>
-
-        <button class="btn primary big" id="btnSign">Tanda tangani dokumen</button>
-        <div class="msg" id="signMsg" hidden></div>
-        <div class="btns" id="dlWrap" hidden><button class="btn primary" id="btnDl">Unduh PDF bertanda tangan</button></div>
       </div>
     </div>
 
-    <div class="note">
-      <p><b>Cara kerjanya.</b> Tanda tangan menghitung sidik matematis dari seluruh isi PDF lalu menguncinya dengan kunci pribadi Anda. Siapa pun bisa membuka dan membaca dokumennya, tapi bila ada satu huruf diubah, sidiknya tidak lagi cocok dan Adobe Reader maupun tab "Periksa keaslian" akan menyatakannya rusak.</p>
-      <p><b>Status hukumnya.</b> Sertifikat yang dibuat di sini adalah tanda tangan elektronik <b>tidak tersertifikasi</b> — sah menurut UU ITE, tapi keasliannya harus dibuktikan bila dipersoalkan. Karena tidak diterbitkan lembaga resmi, Adobe akan menampilkan "identitas penanda tangan tidak dikenal" sampai penerima mempercayai file .cer Anda. Untuk kekuatan hukum penuh seperti surat dinas BSrE, gunakan sertifikat dari PSrE resmi (misalnya Privy, Peruri, VIDA); bila PSrE memberi Anda file .p12, file itu bisa dipakai langsung di sini.</p>
+    <div class="info">
+      <article>
+        <h2><svg aria-hidden="true"><use href="#i-cogs"/></svg>Cara kerjanya</h2>
+        <p>Tanda tangan menghitung sidik matematis dari seluruh isi PDF lalu menguncinya dengan kunci pribadi Anda. Siapa pun bisa membuka dan membaca dokumennya, tapi bila ada satu huruf diubah, sidiknya tidak lagi cocok dan Adobe Reader maupun tab "Periksa keaslian" akan menyatakannya rusak. Semua cap yang Anda tata ikut terkunci di dalam tanda tangan.</p>
+      </article>
+      <article>
+        <h2><svg aria-hidden="true"><use href="#i-scale"/></svg>Status hukumnya</h2>
+        <p>Sertifikat yang dibuat di sini adalah tanda tangan elektronik <b>tidak tersertifikasi</b>: sah menurut UU ITE, tapi keasliannya harus dibuktikan bila dipersoalkan. Adobe akan menampilkan "identitas penanda tangan tidak dikenal" sampai penerima mempercayai file .cer Anda. Untuk kekuatan hukum penuh seperti surat dinas BSrE, gunakan sertifikat dari PSrE resmi (misalnya Privy, Peruri, VIDA); file .p12 dari PSrE bisa dipakai langsung di sini.</p>
+      </article>
     </div>
   </section>
 
   <!-- ================= PERIKSA ================= -->
   <section class="panel" id="pVerify" role="tabpanel" aria-labelledby="tabVerify" hidden>
-    <div class="card pad">
-      <h2>Periksa keaslian PDF</h2>
-      <p class="lead">Cek apakah tanda tangan di dalam PDF masih sah dan isinya belum diubah sejak ditandatangani.</p>
-      <div class="drop" id="vDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk diperiksa">
-        <div class="big">Letakkan PDF di sini</div>
-        <div class="hint">atau klik untuk memilih</div>
+    <div class="vwrap">
+      <div class="card pad">
+        <div class="card__h"><span class="step"><svg width="15" height="15" aria-hidden="true"><use href="#i-shield"/></svg></span><h2>Periksa keaslian PDF</h2></div>
+        <p class="lead">Cek apakah tanda tangan di dalam PDF masih sah dan isinya belum diubah sejak ditandatangani.</p>
+        <div class="drop drop--sm" id="vDrop" tabindex="0" role="button" aria-label="Pilih PDF untuk diperiksa">
+          <span class="drop__ic" aria-hidden="true"><svg><use href="#i-shield"/></svg></span>
+          <span class="big">Letakkan PDF di sini</span>
+          <span class="hint">atau klik untuk memilih</span>
+        </div>
+        <input type="file" id="vFile" accept="application/pdf,.pdf">
+        <div id="vOut" aria-live="polite"><div class="empty"><svg aria-hidden="true"><use href="#i-lock"/></svg>Belum ada dokumen yang diperiksa.</div></div>
       </div>
-      <input type="file" id="vFile" accept="application/pdf,.pdf">
-      <div id="vOut"><div class="empty">Belum ada dokumen yang diperiksa.</div></div>
     </div>
   </section>
-</div>
+</main>
+<footer class="foot"><svg aria-hidden="true"><use href="#i-lock"/></svg>Segel Digital — tanpa server, tanpa pelacak. Kunci dan dokumen tetap di perangkat Anda.</footer>
 
 <script>
 /* Inti Segel Digital — dipakai di browser (global PDFLib, forge, qrcode) dan di Node untuk uji. */
@@ -392,6 +725,106 @@ input[type=file]{display:none}
     return /\/ByteRange\s*\[/.test(s) || /\/Type\s*\/Sig\b/.test(s);
   }
 
+  /* ---------- cap tanda tangan ---------- */
+  const STAMP_DEFAULT = { layout: "qr-kiri", color: "#0d6b5e", border: true, bg: true, heading: "Ditandatangani secara elektronik", jabatan: true, org: true, date: true, id: true };
+  const LOCK_PATH = "M7 10V7a5 5 0 0 1 10 0v3h1.5A1.5 1.5 0 0 1 20 11.5v9A1.5 1.5 0 0 1 18.5 22h-13A1.5 1.5 0 0 1 4 20.5v-9A1.5 1.5 0 0 1 5.5 10H7Zm2 0h6V7a3 3 0 0 0-6 0v3Z";
+  function hexRgb(h) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h || ""); if (!m) return rgb(0.05, 0.42, 0.37);
+    const n = parseInt(m[1], 16); return rgb((n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255);
+  }
+  // Ukuran halaman seperti tampil di penampil (memperhitungkan /Rotate dan CropBox) + konversi ke koordinat PDF.
+  function pageGeom(pg) {
+    const b = pg.getCropBox(), R = ((pg.getRotation().angle % 360) + 360) % 360;
+    const side = R % 180 !== 0, Dw = side ? b.height : b.width, Dh = side ? b.width : b.height;
+    const toUser = (X, Y) => R === 90 ? [b.x + Y, b.y + X]
+      : R === 180 ? [b.x + b.width - X, b.y + Y]
+      : R === 270 ? [b.x + b.width - Y, b.y + b.height - X]
+      : [b.x + X, b.y + b.height - Y];
+    return { R, Dw, Dh, toUser };
+  }
+  /* Cap digambar di dokumen satu halaman tersendiri lalu ditanam sebagai Form XObject:
+     satu desain bisa dipasang di banyak halaman, diskalakan, dan diputar mengikuti halaman. */
+  async function buildStamp(info, style) {
+    const st = Object.assign({}, STAMP_DEFAULT, style || {});
+    const doc = await PDFDocument.create();
+    const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+    const accent = hexRgb(st.color), ink = rgb(0.12, 0.14, 0.18), mute = rgb(0.35, 0.38, 0.42);
+    const L = ["qr-kiri", "qr-kanan", "vertikal", "qr", "teks"].includes(st.layout) ? st.layout : "qr-kiri";
+    const center = L === "vertikal" || L === "qr";
+    const LH = 6, ICON = LH * 0.8, IG = 2.4, pad = 6;
+    // gembok: path 24×24 menempati x 4–20, y 2–22
+    const drawLock = (x0, yBottom, h) => { const k = h / 20; page.drawSvgPath(LOCK_PATH, { x: x0 - 4 * k, y: yBottom + 22 * k, scale: k, color: accent }); };
+    let page;
+    const items = [];
+    if (st.heading) items.push({ t: st.heading, f: font, s: 6.2, c: accent, icon: true });
+    if (L !== "qr") {
+      items.push({ t: info.signer, f: bold, s: 8.2, c: ink });
+      if (st.jabatan && info.jabatan) items.push({ t: info.jabatan, f: font, s: 6.6, c: ink });
+      if (st.org && info.org) items.push({ t: info.org, f: font, s: 6.6, c: ink });
+      if (st.date && info.date) items.push({ t: tanggalID(info.date), f: font, s: 6.4, c: mute });
+      if (st.id && info.docId) items.push({ t: "ID " + info.docId, f: font, s: 6.0, c: mute });
+    }
+    const layoutLines = maxW => {
+      const out = [];
+      items.forEach(it => wrap(it.t, it.f, it.s, maxW - (it.icon ? ICON + IG : 0)).slice(0, 2)
+        .forEach((t, k) => out.push(Object.assign({}, it, { t, icon: it.icon && k === 0, indent: it.icon && k > 0 }))));
+      return out;
+    };
+    const textH = ls => ls.reduce((h, l) => h + l.s + 2.5, 0) - (ls.length ? 2.5 : 0);
+
+    let W, H, qs = 0, qx = 0, qyTop = 0, tx, tTop, maxW, lines;
+    if (L === "qr-kiri" || L === "qr-kanan") {
+      W = 244; qs = 66; maxW = W - pad - qs - 8 - 6;
+      lines = layoutLines(maxW);
+      H = Math.max(qs + pad * 2, textH(lines) + 14);
+      qx = L === "qr-kiri" ? pad : W - pad - qs; qyTop = (H - qs) / 2;
+      tx = L === "qr-kiri" ? pad + qs + 8 : pad + 2; tTop = 7;
+    } else if (L === "vertikal") {
+      W = 150; qs = 84; maxW = W - 14;
+      lines = layoutLines(maxW);
+      H = pad + qs + 6 + textH(lines) + 8;
+      qx = (W - qs) / 2; qyTop = pad; tx = W / 2; tTop = pad + qs + 6;
+    } else if (L === "qr") {
+      W = 96; qs = 84; maxW = W - 8;
+      lines = layoutLines(maxW);
+      H = pad + qs + (lines.length ? 4 + textH(lines) + 6 : pad);
+      qx = (W - qs) / 2; qyTop = pad; tx = W / 2; tTop = pad + qs + 4;
+    } else {
+      W = 210; tx = 8 + 18 + 8; maxW = W - tx - 6;
+      lines = layoutLines(maxW);
+      H = Math.max(34, textH(lines) + 14);
+      tTop = 7;
+    }
+    W = Math.round(W * 100) / 100; H = Math.round(H * 100) / 100;
+    page = doc.addPage([W, H]);
+    if (st.bg || st.border) {
+      const o = st.border ? 0.4 : 0;
+      page.drawRectangle({ x: o, y: o, width: W - 2 * o, height: H - 2 * o,
+        color: st.bg ? rgb(1, 1, 1) : undefined, opacity: st.bg ? 0.96 : undefined,
+        borderColor: st.border ? accent : undefined, borderWidth: st.border ? 0.8 : 0 });
+    }
+    if (qs) {
+      const qrText = `SEGEL DIGITAL\nPenanda tangan: ${info.signer}\nWaktu: ${info.date ? info.date.toISOString() : ""}\nID dokumen: ${info.docId || ""}\nSidik sertifikat SHA-256: ${info.fp || ""}`;
+      const q = qrcode(0, "M"); q.addData(unescape(encodeURIComponent(qrText))); q.make();
+      const n = q.getModuleCount(), cell = qs / n, qy = H - qyTop - qs;
+      if (!st.bg) page.drawRectangle({ x: qx - 2, y: qy - 2, width: qs + 4, height: qs + 4, color: rgb(1, 1, 1) });
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
+        if (q.isDark(r, c)) page.drawRectangle({ x: qx + c * cell, y: qy + qs - (r + 1) * cell, width: cell + 0.02, height: cell + 0.02, color: rgb(0, 0, 0) });
+    }
+    if (L === "teks") drawLock(8 + 18 * 0.1, (H - 18) / 2, 18); // gembok besar di kiri
+    let cur = H - tTop;
+    for (const l of lines) {
+      cur -= l.s;
+      const tw = l.f.widthOfTextAtSize(l.t, l.s) + (l.icon || l.indent ? ICON + IG : 0);
+      let x = center ? tx - tw / 2 : tx;
+      if (l.icon) drawLock(x, cur - 0.2, LH);
+      if (l.icon || l.indent) x += ICON + IG;
+      page.drawText(l.t, { x, y: cur, size: l.s, font: l.f, color: l.c });
+      cur -= 2.5;
+    }
+    return { doc, width: W, height: H };
+  }
+
   async function signPdf(inputBytes, id, opt) {
     const {
       reason = "Saya menyetujui dokumen ini", location = "", contact = "",
@@ -402,7 +835,6 @@ input[type=file]{display:none}
     const pdf = await PDFDocument.load(inputBytes, { updateMetadata: false });
     const pages = pdf.getPages();
     const font = await pdf.embedFont(StandardFonts.Helvetica);
-    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
     const signer = cn(id.cert);
     const fp = fingerprint(id.cert);
     const docId = forge.util.bytesToHex(forge.random.getBytesSync(8)).toUpperCase();
@@ -410,39 +842,43 @@ input[type=file]{display:none}
     // 1) teks kaki halaman di tiap halaman (bagian dari isi yang ditandatangani)
     if (footer) {
       for (const pg of pages) {
-        const { width } = pg.getSize(); const size = 7;
-        const lines = wrap(footer, font, size, width - 80);
+        const g = pageGeom(pg), size = 7;   // ikuti orientasi tampilan halaman
+        const lines = wrap(footer, font, size, g.Dw - 80);
         lines.forEach((ln, i) => {
           const w = font.widthOfTextAtSize(ln, size);
-          pg.drawText(ln, { x: (width - w) / 2, y: 24 + (lines.length - 1 - i) * (size + 2), size, font, color: rgb(0.25, 0.25, 0.25) });
+          const [x, y] = g.toUser((g.Dw - w) / 2, g.Dh - 24 - (lines.length - 1 - i) * (size + 2));
+          pg.drawText(ln, { x, y, size, font, color: rgb(0.25, 0.25, 0.25), rotate: PDFLib.degrees(g.R) });
         });
       }
     }
 
-    // 2) cap tanda tangan terlihat + QR
-    let rect = [0, 0, 0, 0], page = stampPage === "first" ? pages[0] : pages[pages.length - 1];
-    if (stamp) {
-      const { width, height } = page.getSize();
-      const W = 244, H = jabatan ? 86 : 78, M = 36;
-      const x = stampPos.endsWith("l") ? M : width - W - M;
-      const y = stampPos.startsWith("t") ? height - H - M : M + 30;
-      rect = [x, y, x + W, y + H];
-      page.drawRectangle({ x, y, width: W, height: H, borderColor: rgb(0.2, 0.25, 0.32), borderWidth: 0.8, color: rgb(1, 1, 1), opacity: 0.96, borderOpacity: 1 });
-      // QR
-      const qrText = `SEGEL DIGITAL\nPenanda tangan: ${signer}\nWaktu: ${now.toISOString()}\nID dokumen: ${docId}\nSidik sertifikat SHA-256: ${fp}`;
-      const q = qrcode(0, "M"); q.addData(unescape(encodeURIComponent(qrText))); q.make();
-      const n = q.getModuleCount(), qs = H - 12, cell = qs / n, qx = x + 6, qy = y + 6;
-      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
-        if (q.isDark(r, c)) page.drawRectangle({ x: qx + c * cell, y: qy + qs - (r + 1) * cell, width: cell + 0.02, height: cell + 0.02, color: rgb(0, 0, 0) });
-      const tx = qx + qs + 8, maxW = x + W - tx - 5;
-      let ty = y + H - 13;
-      const line = (t, f, s, col) => { for (const l of wrap(t, f, s, maxW).slice(0, 2)) { page.drawText(l, { x: tx, y: ty, size: s, font: f, color: col || rgb(0.12, 0.14, 0.18) }); ty -= s + 2.5; } };
-      line("Ditandatangani secara elektronik", font, 6.2, rgb(0.35, 0.38, 0.42));
-      line(signer, bold, 8.2);
-      if (jabatan) line(jabatan, font, 6.6);
-      const org = field(id.cert, "O"); if (org) line(org, font, 6.6);
-      line(tanggalID(now), font, 6.4, rgb(0.35, 0.38, 0.42));
-      line("ID " + docId, font, 6.0, rgb(0.35, 0.38, 0.42));
+    // 2) cap tanda tangan terlihat + QR, di posisi bebas pada halaman mana pun
+    //    placements: [{ page (0-based), fx, fy, fw }] = pecahan lebar/tinggi halaman seperti tampil di layar (asal kiri atas)
+    let placements = opt.placements;
+    if (!placements) placements = stamp ? [legacyPlacement(stampPage === "first" ? 0 : pages.length - 1, stampPos)] : [];
+    placements = placements.filter(p => pages[p.page]);
+    let rect = [0, 0, 0, 0], page = pages[pages.length - 1];
+    if (placements.length) {
+      const st = await buildStamp({ signer, jabatan, org: field(id.cert, "O"), date: now, docId, fp }, opt.stampStyle);
+      const emb = await pdf.embedPage(st.doc.getPage(0));
+      placements.forEach((pl, i) => {
+        const pg = pages[pl.page], g = pageGeom(pg);
+        const s = (pl.fw * g.Dw) / st.width, dw = st.width * s, dh = st.height * s;
+        const dx = pl.fx * g.Dw, dy = pl.fy * g.Dh;
+        const [ox, oy] = g.toUser(dx, dy + dh);
+        pg.drawPage(emb, { x: ox, y: oy, xScale: s, yScale: s, rotate: PDFLib.degrees(g.R) });
+        if (i === 0) {
+          const cs = [g.toUser(dx, dy), g.toUser(dx + dw, dy), g.toUser(dx, dy + dh), g.toUser(dx + dw, dy + dh)];
+          const xs = cs.map(c => c[0]), ys = cs.map(c => c[1]);
+          rect = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+          page = pg;
+        }
+      });
+    }
+    function legacyPlacement(pi, pos) {
+      const g = pageGeom(pages[pi]), M = 36, W = 244, H = 80;
+      const fw = W / g.Dw, x = pos.endsWith("l") ? M : g.Dw - W - M, y = pos.startsWith("t") ? M : g.Dh - H - M - 30;
+      return { page: pi, fx: x / g.Dw, fy: y / g.Dh, fw };
     }
 
     // 3) kamus tanda tangan dengan placeholder
@@ -466,7 +902,7 @@ input[type=file]{display:none}
     }
     const sigRef = ctx.register(sigDict);
 
-    const apStream = ctx.stream("", { Type: "XObject", Subtype: "Form", BBox: [0, 0, rect[2] - rect[0], rect[3] - rect[1]], Resources: {} });
+    const apStream = ctx.stream("", { Type: "XObject", Subtype: "Form", BBox: [0, 0, Math.max(0, rect[2] - rect[0]), Math.max(0, rect[3] - rect[1])], Resources: {} });
     const apRef = ctx.register(apStream);
     const widget = ctx.obj({
       Type: "Annot", Subtype: "Widget", FT: "Sig", Rect: rect, V: sigRef,
@@ -781,7 +1217,7 @@ input[type=file]{display:none}
     return `${d.getDate()} ${BULAN[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())} ${tz}`;
   }
 
-  return { classifyAppended, isEncrypted, rasterize, applyAntiOcr, createIdentity, openIdentity, signPdf, verifyPdf, hasSignature, fingerprint, cn, field, tanggalID, u8ToBinary, binaryToU8 };
+  return { buildStamp, pageGeom, STAMP_DEFAULT, classifyAppended, isEncrypted, rasterize, applyAntiOcr, createIdentity, openIdentity, signPdf, verifyPdf, hasSignature, fingerprint, cn, field, tanggalID, u8ToBinary, binaryToU8 };
 });
 
 </script>
@@ -789,14 +1225,14 @@ input[type=file]{display:none}
 (function(){
 const $=id=>document.getElementById(id);
 const Core = SegelCore;
-const LS_KEY="segel.identity.v1";
+const LS_KEY="segel.identity.v1", ST_KEY="segel.stamp.v2", TH_KEY="segel.theme";
 let identity=null;      // {p12b64, name, org, email, fp}
 let unlocked=null;      // {privateKey, cert, chain}
 let srcFile=null, srcBytes=null, outBytes=null, outName="";
 
 /* ---------- penyimpanan lokal (aman bila gagal) ---------- */
-function lsGet(){ try{ const v=localStorage.getItem(LS_KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
-function lsSet(v){ try{ localStorage.setItem(LS_KEY, JSON.stringify(v)); }catch(e){} }
+function lsGet(k){ try{ const v=localStorage.getItem(k||LS_KEY); return v?JSON.parse(v):null; }catch(e){ return null; } }
+function lsSet(v,k){ try{ localStorage.setItem(k||LS_KEY, JSON.stringify(v)); }catch(e){} }
 function lsDel(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
 
 /* ---------- util ---------- */
@@ -807,6 +1243,8 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;"
 function b64FromBin(s){ return btoa(s); } function binFromB64(b){ return atob(b); }
 function initials(n){ return (n||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase(); }
 function tick(){ return new Promise(r=>setTimeout(r,20)); }
+function debounce(fn,ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; }
+function ensureWorker(){ if(window.pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"; }
 
 async function saveFile(filename, data){
   let dl=null;
@@ -829,15 +1267,34 @@ async function saveFile(filename, data){
   setTimeout(()=>URL.revokeObjectURL(url),8000); return "saved";
 }
 
+/* ---------- tema ---------- */
+const THEMES=[["auto","otomatis","#i-auto"],["light","terang","#i-sun"],["dark","gelap","#i-moon"]];
+function applyTheme(m){
+  const t=THEMES.find(x=>x[0]===m)||THEMES[0];
+  if(t[0]==="auto") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme=t[0];
+  $("btnTheme").setAttribute("aria-label","Tema: "+t[1]+". Klik untuk mengganti.");
+  $("btnTheme").querySelector("use").setAttribute("href",t[2]);
+}
+let theme=lsGet(TH_KEY)||"auto"; applyTheme(theme);
+$("btnTheme").addEventListener("click",()=>{ const i=THEMES.findIndex(x=>x[0]===theme); theme=THEMES[(i+1)%THEMES.length][0]; lsSet(theme,TH_KEY); applyTheme(theme); });
+
 /* ---------- tab ---------- */
 const tabs=[["tabSign","pSign"],["tabVerify","pVerify"]];
-tabs.forEach(([t,p])=>$(t).addEventListener("click",()=>{
-  tabs.forEach(([t2,p2])=>{ $(t2).setAttribute("aria-selected",t2===t?"true":"false"); $(p2).hidden = t2!==t; });
-}));
+function selectTab(t){
+  tabs.forEach(([t2,p2])=>{ const on=t2===t; $(t2).setAttribute("aria-selected",on?"true":"false"); $(t2).tabIndex=on?0:-1; $(p2).hidden=!on; });
+  if(t==="tabSign" && doc) layoutPage();
+}
+tabs.forEach(([t],i)=>{
+  $(t).addEventListener("click",()=>selectTab(t));
+  $(t).addEventListener("keydown",e=>{
+    if(e.key!=="ArrowRight" && e.key!=="ArrowLeft") return;
+    const n=tabs[(i+(e.key==="ArrowRight"?1:tabs.length-1))%tabs.length][0]; selectTab(n); $(n).focus();
+  });
+});
 
 /* ---------- identitas ---------- */
 function renderIdentity(){
-  if(!identity){ $("idNone").hidden=false; $("idHave").hidden=true; fillFooter($("nName").value.trim(),$("nOrg").value.trim()); return; }
+  if(!identity){ $("idNone").hidden=false; $("idHave").hidden=true; fillFooter($("nName").value.trim(),$("nOrg").value.trim()); queuePreview(); return; }
   $("idNone").hidden=true; $("idHave").hidden=false;
   $("idAv").textContent=initials(identity.name);
   $("idName").textContent=identity.name;
@@ -845,7 +1302,7 @@ function renderIdentity(){
   $("idFp").textContent="Sidik SHA-256: "+identity.fp;
   $("unlockBox").hidden=!!unlocked; $("unlocked").hidden=!unlocked;
   fillFooter(identity.name, identity.org);
-  updateSignBtn();
+  queuePreview();
 }
 $("oFooterText").addEventListener("input",()=>$("oFooterText").dataset.touched="1");
 function fillFooter(name,org){
@@ -857,7 +1314,7 @@ function fillFooter(name,org){
   $("oFooterText").value=t;
 }
 function refreshFooter(){ if(identity) fillFooter(identity.name, identity.org); else fillFooter($("nName").value.trim(),$("nOrg").value.trim()); }
-["nName","nOrg","oJab"].forEach(i=>$(i).addEventListener("input",refreshFooter));
+["nName","nOrg","oJab"].forEach(i=>$(i).addEventListener("input",()=>{ refreshFooter(); queuePreview(); }));
 
 function adoptP12(p12Der, pw){
   const id=Core.openIdentity(p12Der, pw);
@@ -868,16 +1325,17 @@ function adoptP12(p12Der, pw){
 async function createFromForm(){
   const name=$("nName").value.trim(), org=$("nOrg").value.trim(), email=$("nMail").value.trim(), pw=$("nPw").value, pw2=$("nPw2").value;
   const m=$("idMsg");
-  if(name.length<3){ show(m,"bad","Isi nama lengkap penanda tangan."); $("nName").focus(); return false; }
+  if(name.length<3){ show(m,"bad","Isi nama lengkap penanda tangan (minimal 3 huruf)."); $("nName").focus(); return false; }
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ show(m,"bad","Format email belum benar, contoh: nama@instansi.ac.id. Atau kosongkan saja."); $("nMail").focus(); return false; }
   if(pw.length<6){ show(m,"bad","Buat kata sandi sertifikat, minimal 6 karakter."); $("nPw").focus(); return false; }
-  if(pw!==pw2){ show(m,"bad","Kedua kata sandi tidak sama."); $("nPw2").focus(); return false; }
+  if(pw!==pw2){ show(m,"bad","Kedua kata sandi tidak sama. Ketik ulang di kolom \"Ulangi\"."); $("nPw2").focus(); return false; }
   if(!window.crypto || !crypto.subtle){ show(m,"bad","Browser ini tidak mendukung pembuatan kunci. Coba Chrome, Edge, Firefox, atau Safari terbaru."); return false; }
   const b=$("btnCreate"); b.disabled=true; show(m,"warn",'<span class="spin"></span>Membuat kunci dan sertifikat…');
   try{
     await tick();
     const r=await Core.createIdentity({name,org,email,title:$("oJab").value.trim(),password:pw}, crypto.subtle);
     adoptP12(r.p12Der, pw);
-    $("nPw").value=$("nPw2").value="";
+    $("nPw").value=$("nPw2").value=""; hide(m);
     show($("idMsg2"),"ok","<b>Sertifikat dibuat.</b> Unduh cadangannya sekarang — tanpa cadangan, identitas ini hilang bila data browser dihapus.");
     return true;
   }catch(e){ show(m,"bad","Gagal membuat sertifikat: "+esc(e.message)); return false; }
@@ -909,14 +1367,14 @@ $("fImport").addEventListener("change", async e=>{
 
 $("btnUnlock").addEventListener("click", ()=>{
   try{ unlocked=Core.openIdentity(binFromB64(identity.p12b64), $("uPw").value); $("uPw").value=""; hide($("idMsg2")); renderIdentity(); }
-  catch(e){ show($("idMsg2"),"bad","Kata sandi salah."); }
+  catch(e){ show($("idMsg2"),"bad","Kata sandi salah. Coba lagi."); $("uPw").select(); }
 });
 $("uPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("btnUnlock").click(); });
 
 $("btnExport").addEventListener("click", async ()=>{
   try{
     const z=new JSZip();
-    const safe=identity.name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")||"sertifikat";
+    const safe=identity.name.normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")||"sertifikat";
     z.file(safe+".p12", Core.binaryToU8(binFromB64(identity.p12b64)));
     if(unlocked) z.file(safe+".cer", forge.pki.certificateToPem(unlocked.cert));
     z.file("BACA-SAYA.txt", [
@@ -943,45 +1401,384 @@ $("btnForget").addEventListener("click", ()=>{
   identity=null; unlocked=null; lsDel(); delete $("oFooterText").dataset.touched; renderIdentity();
 });
 
+/* =====================================================================
+   PENATA LETAK CAP
+   Posisi cap disimpan sebagai pecahan halaman (fx, fy, fw) seperti tampil
+   di layar, jadi tetap tepat untuk halaman berukuran/berorientasi beda
+   maupun setelah halaman diubah jadi gambar.
+   ===================================================================== */
+let doc=null;              // {pdf, n, sizes:[{w,h}]}
+let stamps=[], selId=null, cur=0, seq=0, renderTask=null;
+let stampImg={url:"", w:244, h:80};
+const PREVIEW_ID=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+const MARGIN=36, FOOT_GAP=30, SNAP_PX=7;
+
+function radioVal(name){ const r=document.querySelector(`input[name=${name}]:checked`); return r?r.value:""; }
+function readStyle(){
+  return { layout:radioVal("layout"), color:radioVal("color"), heading:$("sjHead").value.trim(),
+    jabatan:$("sjJab").checked, org:$("sjOrg").checked, date:$("sjDate").checked, id:$("sjId").checked,
+    border:$("sjBorder").checked, bg:$("sjBg").checked };
+}
+function applyStyle(st){
+  if(!st) return;
+  const set=(name,v)=>{ const r=document.querySelector(`input[name=${name}][value="${v}"]`); if(r) r.checked=true; };
+  set("layout",st.layout); set("color",st.color);
+  if(typeof st.heading==="string") $("sjHead").value=st.heading;
+  [["sjJab","jabatan"],["sjOrg","org"],["sjDate","date"],["sjId","id"],["sjBorder","border"],["sjBg","bg"]].forEach(([i,k])=>{ if(k in st) $(i).checked=!!st[k]; });
+}
+applyStyle(lsGet(ST_KEY));
+
+function previewInfo(){
+  const name=identity?identity.name:($("nName").value.trim()||"Nama Penanda Tangan");
+  const org=identity?identity.org:$("nOrg").value.trim();
+  return { signer:name, jabatan:$("oJab").value.trim(), org, date:new Date(), docId:PREVIEW_ID, fp:"pratinjau" };
+}
+
+/* pratinjau cap = cap PDF asli yang dirender pdf.js, jadi persis sama dengan hasil akhir */
+let prevTok=0;
+async function renderStampPreview(){
+  if(!window.pdfjsLib || !window.PDFLib) return;
+  const tok=++prevTok;
+  try{
+    ensureWorker();
+    const st=await Core.buildStamp(previewInfo(), readStyle());
+    const bytes=await st.doc.save();
+    const pd=await pdfjsLib.getDocument({data:bytes}).promise;
+    const pg=await pd.getPage(1), vp=pg.getViewport({scale:4});
+    const cv=document.createElement("canvas"); cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
+    await pg.render({canvasContext:cv.getContext("2d"), viewport:vp, background:"rgba(0,0,0,0)"}).promise;
+    const url=cv.toDataURL("image/png"); pd.destroy();
+    if(tok!==prevTok) return;
+    const oldW=stampImg.w, layoutChanged=Math.abs(oldW-st.width)>0.5;
+    stampImg={url, w:st.width, h:st.height};
+    if(layoutChanged && stamps.length) stamps.forEach(s=>{ s.fw*=st.width/oldW; clamp(s); });
+    renderStamps();
+  }catch(e){ console.warn("Pratinjau cap gagal", e); }
+}
+const queuePreview=debounce(renderStampPreview,120);
+
+function onStyleChange(){ lsSet(readStyle(),ST_KEY); queuePreview(); }
+document.querySelectorAll("input[name=layout],input[name=color],#sjJab,#sjOrg,#sjDate,#sjId,#sjBorder,#sjBg").forEach(el=>el.addEventListener("change",onStyleChange));
+$("sjHead").addEventListener("input",onStyleChange);
+
+/* ---- geometri ---- */
+const size=p=>doc.sizes[p];
+const aspect=()=>stampImg.h/stampImg.w;
+const fhOf=s=>{ const d=size(s.page); return s.fw*d.w*aspect()/d.h; };
+function clamp(s){
+  const d=size(s.page), minW=Math.min(1,48/d.w);
+  let maxW=Math.min(1, d.h/(d.w*aspect()));
+  s.fw=Math.max(minW,Math.min(maxW,s.fw));
+  const fh=fhOf(s);
+  s.fx=Math.max(0,Math.min(1-s.fw,s.fx));
+  s.fy=Math.max(0,Math.min(1-fh,s.fy));
+  return s;
+}
+function presetPos(s,p){
+  const d=size(s.page), fh=fhOf(s), mx=MARGIN/d.w, my=MARGIN/d.h;
+  s.fx = p[1]==="l" ? mx : p[1]==="c" ? (1-s.fw)/2 : 1-s.fw-mx;
+  s.fy = p[0]==="t" ? my : p[0]==="m" ? (1-fh)/2 : 1-fh-(MARGIN+FOOT_GAP)/d.h;
+  return clamp(s);
+}
+function newStamp(page,init){
+  const d=size(page);
+  const s=Object.assign({id:++seq, page, fx:0, fy:0, fw:Math.min(0.6, stampImg.w/d.w)}, init||{});
+  if(!init || init.fx==null) presetPos(s,"br"); else clamp(s);
+  stamps.push(s); return s;
+}
+const onPage=p=>stamps.filter(s=>s.page===p);
+const selected=()=>stamps.find(s=>s.id===selId)||null;
+
+/* ---- muat dokumen ---- */
+async function loadDoc(bytes){
+  ensureWorker();
+  if(doc){ try{ doc.pdf.destroy(); }catch(e){} }
+  doc=null; stamps=[]; selId=null;
+  const pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+  const sizes=[];
+  for(let i=1;i<=pdf.numPages;i++){ const p=await pdf.getPage(i); const v=p.getViewport({scale:1}); sizes.push({w:v.width,h:v.height}); }
+  doc={pdf, n:pdf.numPages, sizes};
+  cur=doc.n-1;
+  const s=newStamp(cur); selId=s.id;
+  $("pgTotal").textContent=doc.n; $("pgNum").max=doc.n;
+  buildThumbs();
+  await showPage(cur);
+}
+
+async function showPage(i){
+  if(!doc) return;
+  cur=Math.max(0,Math.min(doc.n-1,i));
+  $("pgNum").value=cur+1; $("pgPrev").disabled=cur===0; $("pgNext").disabled=cur===doc.n-1;
+  document.querySelectorAll(".thumb").forEach(t=>t.setAttribute("aria-current",+t.dataset.p===cur?"true":"false"));
+  const th=document.querySelector(`.thumb[data-p="${cur}"]`); if(th) th.scrollIntoView({block:"nearest",inline:"nearest"});
+  if(selected() && selected().page!==cur) selId=(onPage(cur)[0]||{}).id||null;
+  await layoutPage();
+}
+
+async function layoutPage(){
+  if(!doc || $("pSign").hidden) return;
+  const d=size(cur), stage=$("stage"), pageEl=$("page");
+  const avail=Math.max(200, stage.clientWidth-32), maxH=Math.max(340, window.innerHeight*0.74);
+  const sc=Math.min(avail/d.w, maxH/d.h);
+  pageEl.style.width=Math.round(d.w*sc)+"px"; pageEl.style.height=Math.round(d.h*sc)+"px";
+  renderStamps();
+  if(renderTask){ try{ renderTask.cancel(); }catch(e){} }
+  $("pageLoad").hidden=false;
+  const want=cur;
+  try{
+    const page=await doc.pdf.getPage(cur+1);
+    if(want!==cur) return;
+    const dpr=Math.min(window.devicePixelRatio||1,2.5), vp=page.getViewport({scale:sc*dpr});
+    const off=document.createElement("canvas"); off.width=Math.ceil(vp.width); off.height=Math.ceil(vp.height);
+    renderTask=page.render({canvasContext:off.getContext("2d"), viewport:vp});
+    await renderTask.promise; renderTask=null;
+    if(want!==cur) return;
+    const cv=$("pageCv"); cv.width=off.width; cv.height=off.height; cv.getContext("2d").drawImage(off,0,0);
+    $("pageLoad").hidden=true;
+  }catch(e){ if(e && e.name!=="RenderingCancelledException") console.warn(e); }
+}
+window.addEventListener("resize", debounce(()=>{ if(doc) layoutPage(); },150));
+
+/* ---- gambar cap di halaman ---- */
+function placeEl(el,s){
+  el.style.left=(s.fx*100)+"%"; el.style.top=(s.fy*100)+"%";
+  el.style.width=(s.fw*100)+"%"; el.style.height=(fhOf(s)*100)+"%";
+}
+function renderStamps(){
+  const layer=$("stampLayer"); layer.textContent="";
+  updateTools();
+  if(!doc || !$("oStamp").checked) return;
+  for(const s of onPage(cur)){
+    const el=document.createElement("div");
+    el.className="stamp"+(s.id===selId?" is-sel":"");
+    el.tabIndex=0; el.dataset.id=s.id;
+    el.setAttribute("role","group");
+    el.setAttribute("aria-roledescription","cap tanda tangan");
+    el.setAttribute("aria-label",`Cap di halaman ${s.page+1}. Panah untuk memindah, plus atau minus untuk ukuran, Delete untuk menghapus.`);
+    el.innerHTML=`<img alt="" src="${stampImg.url}" draggable="false"><span class="stamp__h" aria-hidden="true"></span><button type="button" class="stamp__x" tabindex="-1" aria-label="Hapus cap ini"><svg aria-hidden="true"><use href="#i-x"/></svg></button>`;
+    placeEl(el,s);
+    bindStamp(el,s);
+    layer.appendChild(el);
+  }
+}
+function select(id,focus){
+  selId=id;
+  document.querySelectorAll(".stamp").forEach(el=>el.classList.toggle("is-sel",+el.dataset.id===id));
+  if(focus){ const el=document.querySelector(`.stamp[data-id="${id}"]`); if(el) el.focus({preventScroll:true}); }
+  updateTools();
+}
+function guides(vx,hy){
+  const gV=$("gV"), gH=$("gH");
+  gV.classList.toggle("on",vx!=null); gH.classList.toggle("on",hy!=null);
+  if(vx!=null) gV.style.left=(vx*100)+"%";
+  if(hy!=null) gH.style.top=(hy*100)+"%";
+}
+function snap(v,len,cands,pxPerUnit){
+  // cands: [[posisiTepiKiri, posisiGaris]]
+  let best=null;
+  for(const [p,line] of cands){ const dpx=Math.abs(v-p)*pxPerUnit; if(dpx<SNAP_PX && (!best || dpx<best.d)) best={p,line,d:dpx}; }
+  return best;
+}
+function bindStamp(el,s){
+  let mode=null, x0=0, y0=0, s0=null, rect=null;
+  el.addEventListener("pointerdown",e=>{
+    if(e.button>0 || e.target.closest(".stamp__x")) return;
+    e.preventDefault();
+    select(s.id); el.focus({preventScroll:true});
+    mode=e.target.classList.contains("stamp__h")?"size":"move";
+    x0=e.clientX; y0=e.clientY; s0={fx:s.fx,fy:s.fy,fw:s.fw}; rect=$("page").getBoundingClientRect();
+    el.setPointerCapture(e.pointerId); el.classList.add("is-drag");
+  });
+  el.addEventListener("pointermove",e=>{
+    if(!mode) return;
+    const dx=(e.clientX-x0)/rect.width, dy=(e.clientY-y0)/rect.height, d=size(s.page);
+    if(mode==="move"){
+      s.fx=s0.fx+dx; s.fy=s0.fy+dy; clamp(s);
+      let vx=null, hy=null;
+      if(!e.altKey){
+        const fh=fhOf(s), mx=MARGIN/d.w, my=MARGIN/d.h, mb=(MARGIN+FOOT_GAP)/d.h;
+        const bx=snap(s.fx,s.fw,[[mx,mx],[(1-s.fw)/2,.5],[1-s.fw-mx,1-mx]],rect.width);
+        const by=snap(s.fy,fh,[[my,my],[(1-fh)/2,.5],[1-fh-my,1-my],[1-fh-mb,1-mb]],rect.height);
+        if(bx){ s.fx=bx.p; vx=bx.line; } if(by){ s.fy=by.p; hy=by.line; }
+      }
+      guides(vx,hy);
+    }else{
+      s.fw=Math.min(s0.fw+dx, 1-s.fx);
+      const maxFh=1-s.fy; if(fhOf(s)>maxFh) s.fw=maxFh*d.h/(d.w*aspect());
+      clamp(s);
+    }
+    placeEl(el,s);
+  });
+  const end=()=>{ if(!mode) return; mode=null; el.classList.remove("is-drag"); guides(null,null); updateStatus(); };
+  el.addEventListener("pointerup",end); el.addEventListener("pointercancel",end);
+  el.addEventListener("keydown",e=>{
+    const big=e.shiftKey?0.05:0.01;
+    const k=e.key;
+    if(k.startsWith("Arrow")){
+      e.preventDefault();
+      if(k==="ArrowLeft") s.fx-=big; if(k==="ArrowRight") s.fx+=big;
+      if(k==="ArrowUp") s.fy-=big; if(k==="ArrowDown") s.fy+=big;
+    }else if(k==="+"||k==="="){ e.preventDefault(); s.fw*=1.06; }
+    else if(k==="-"||k==="_"){ e.preventDefault(); s.fw/=1.06; }
+    else if(k==="Delete"||k==="Backspace"){ e.preventDefault(); removeStamp(s.id); return; }
+    else return;
+    clamp(s); placeEl(el,s); updateStatus();
+  });
+  el.addEventListener("focus",()=>{ if(selId!==s.id) select(s.id); });
+  el.querySelector(".stamp__x").addEventListener("click",e=>{ e.stopPropagation(); removeStamp(s.id); });
+}
+function removeStamp(id){
+  const s=stamps.find(x=>x.id===id); if(!s) return;
+  stamps=stamps.filter(x=>x.id!==id);
+  const next=onPage(s.page)[0];
+  selId=next?next.id:null;
+  renderStamps(); updateStatus();
+  if(next) select(next.id,true); else $("btnAddStamp").focus();
+}
+
+/* klik kosong = batal pilih; klik ganda = tambah cap di titik itu */
+$("page").addEventListener("pointerdown",e=>{ if(!e.target.closest(".stamp")) select(null); });
+$("page").addEventListener("dblclick",e=>{
+  if(!doc || !$("oStamp").checked || e.target.closest(".stamp")) return;
+  const r=$("page").getBoundingClientRect();
+  const s=newStamp(cur,{fx:0,fy:0});
+  s.fx=(e.clientX-r.left)/r.width - s.fw/2; s.fy=(e.clientY-r.top)/r.height - fhOf(s)/2; clamp(s);
+  selId=s.id; renderStamps(); select(s.id,true); updateStatus();
+});
+
+/* ---- toolbar ---- */
+$("pgPrev").addEventListener("click",()=>showPage(cur-1));
+$("pgNext").addEventListener("click",()=>showPage(cur+1));
+$("pgNum").addEventListener("change",()=>{ const v=parseInt($("pgNum").value,10); showPage(isNaN(v)?cur:v-1); });
+$("btnAddStamp").addEventListener("click",()=>{
+  if(!doc) return;
+  const base=selected() && selected().page===cur ? selected() : null;
+  const s=base ? newStamp(cur,{fx:base.fx-0.04,fy:base.fy-0.06,fw:base.fw}) : newStamp(cur);
+  selId=s.id; renderStamps(); select(s.id,true); updateStatus();
+});
+$("btnCopyAll").addEventListener("click",()=>{
+  const src=selected()||onPage(cur)[0]; if(!src) return;
+  let added=0;
+  for(let p=0;p<doc.n;p++){
+    if(p===src.page) continue;
+    if(onPage(p).some(o=>Math.abs(o.fx-src.fx)<0.02 && Math.abs(o.fy-src.fy)<0.02)) continue;
+    newStamp(p,{fx:src.fx,fy:src.fy,fw:src.fw}); added++;
+  }
+  renderStamps(); updateStatus(added ? `Cap disalin ke ${added} halaman lain.` : "Semua halaman sudah punya cap di posisi itu.");
+});
+$("btnDelStamp").addEventListener("click",()=>{ const s=selected(); if(s) removeStamp(s.id); });
+$("presets").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-p]"); const s=selected(); if(!b||!s) return;
+  presetPos(s,b.dataset.p); renderStamps(); select(s.id,true); updateStatus();
+});
+$("oStamp").addEventListener("change",()=>{ $("stampTools").hidden=!$("oStamp").checked; renderStamps(); updateStatus(); updateSummary(); });
+
+function updateTools(){
+  const on=!!doc && $("oStamp").checked, has=!!selected() && selected().page===cur;
+  $("btnAddStamp").disabled=!on;
+  $("btnCopyAll").disabled=!on || !(has || onPage(cur).length) || !doc || doc.n<2;
+  $("btnDelStamp").disabled=!on || !has;
+  $("presets").querySelectorAll("button").forEach(b=>b.disabled=!on || !has);
+}
+function updateStatus(extra){
+  updateTools(); updateThumbBadges(); updateSummary();
+  const el=$("stampStatus"); if(!doc){ el.textContent=""; return; }
+  if(!$("oStamp").checked){ el.textContent="Cap disembunyikan. Tanda tangan digital tetap tertanam tanpa tampilan di halaman."; return; }
+  const pages=new Set(stamps.map(s=>s.page)).size;
+  el.textContent = stamps.length
+    ? `${stamps.length} cap di ${pages} halaman.`+(extra?" "+extra:"")
+    : "Belum ada cap. Klik \"Tambah cap\" atau klik ganda di halaman.";
+}
+
+/* ---- thumbnail halaman ---- */
+let thumbObs=null;
+function buildThumbs(){
+  const box=$("thumbs"); box.textContent="";
+  if(thumbObs) thumbObs.disconnect();
+  box.hidden=doc.n<2;
+  thumbObs=new IntersectionObserver(ents=>ents.forEach(en=>{ if(en.isIntersecting){ thumbObs.unobserve(en.target); drawThumb(en.target); } }),{root:box,rootMargin:"0px 200px"});
+  for(let p=0;p<doc.n;p++){
+    const b=document.createElement("button");
+    b.type="button"; b.className="thumb"; b.dataset.p=p;
+    b.setAttribute("aria-label","Halaman "+(p+1));
+    const d=size(p), cv=document.createElement("canvas"); cv.width=60; cv.height=Math.round(60*d.h/d.w);
+    b.append(cv); const n=document.createElement("span"); n.className="n"; n.textContent=p+1; b.append(n);
+    b.addEventListener("click",()=>showPage(p));
+    box.append(b); thumbObs.observe(b);
+  }
+  updateThumbBadges();
+}
+async function drawThumb(b){
+  const myDoc=doc;
+  try{
+    const p=+b.dataset.p, page=await myDoc.pdf.getPage(p+1);
+    const cv=b.querySelector("canvas"), vp=page.getViewport({scale:(cv.width*2)/size(p).w});
+    cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
+    await page.render({canvasContext:cv.getContext("2d"), viewport:vp}).promise;
+  }catch(e){}
+}
+function updateThumbBadges(){
+  if(!doc) return;
+  document.querySelectorAll(".thumb").forEach(b=>{
+    const c=$("oStamp").checked ? onPage(+b.dataset.p).length : 0;
+    let badge=b.querySelector(".cnt");
+    if(!c){ if(badge) badge.remove(); b.setAttribute("aria-label","Halaman "+(+b.dataset.p+1)); return; }
+    if(!badge){ badge=document.createElement("span"); badge.className="cnt"; b.append(badge); }
+    badge.textContent=c; b.setAttribute("aria-label",`Halaman ${+b.dataset.p+1}, ${c} cap`);
+  });
+}
+
 /* ---------- dokumen untuk ditandatangani ---------- */
-function bindDrop(dropId, inputId, onFile){
+function bindDrop(dropId, inputId, onFile, extraZones){
   const d=$(dropId), i=$(inputId);
   d.addEventListener("click",()=>i.click());
   d.addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); i.click(); } });
-  d.addEventListener("dragover",e=>{ e.preventDefault(); d.classList.add("hot"); });
-  d.addEventListener("dragleave",()=>d.classList.remove("hot"));
-  d.addEventListener("drop",e=>{ e.preventDefault(); d.classList.remove("hot"); if(e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+  [d].concat(extraZones||[]).forEach(z=>{
+    z.addEventListener("dragover",e=>{ if(!e.dataTransfer.types.includes("Files")) return; e.preventDefault(); d.classList.add("hot"); });
+    z.addEventListener("dragleave",()=>d.classList.remove("hot"));
+    z.addEventListener("drop",e=>{ if(!e.dataTransfer.files[0]) return; e.preventDefault(); d.classList.remove("hot"); onFile(e.dataTransfer.files[0]); });
+  });
   i.addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; if(f) onFile(f); });
 }
 function isPdf(f){ return f.type==="application/pdf" || /\.pdf$/i.test(f.name); }
+function resetDoc(){ srcFile=null; srcBytes=null; doc=null; stamps=[]; $("editor").hidden=true; $("sDrop").hidden=false; updateStatus(); }
 
 bindDrop("sDrop","sFile", async f=>{
   const m=$("signMsg"); hide(m); $("dlWrap").hidden=true; outBytes=null;
-  if(!isPdf(f)){ srcFile=null; updateSignBtn(); return show(m,"bad","File harus berformat PDF."); }
+  if(!isPdf(f)){ resetDoc(); return show(m,"bad","<b>File harus berformat PDF.</b> Pilih file berakhiran .pdf."); }
   const bytes=new Uint8Array(await f.arrayBuffer());
   if(Core.hasSignature(bytes)){
-    srcFile=null; srcBytes=null; $("sChip").hidden=true; updateSignBtn();
+    resetDoc();
     return show(m,"bad","<b>PDF ini sudah bertanda tangan.</b> Menandatanganinya lagi di sini akan merusak tanda tangan yang sudah ada. Gunakan file asli sebelum ditandatangani.");
   }
   if(Core.isEncrypted(bytes)){
-    srcFile=null; srcBytes=null; $("sChip").hidden=true;
+    resetDoc();
     return show(m,"bad","<b>PDF ini sudah terkunci kata sandi.</b> Gunakan file asli yang belum dikunci.");
   }
   srcFile=f; srcBytes=bytes; outName=f.name.replace(/\.pdf$/i,"")+"-ditandatangani.pdf";
-  $("sName").textContent=f.name; $("sSize").textContent=fmtSize(f.size); $("sChip").hidden=false;
-  updateSignBtn();
-});
-function updateSignBtn(){}
+  $("sName").textContent=f.name; $("sSize").textContent=fmtSize(f.size);
+  $("sDrop").hidden=true; $("editor").hidden=false;
+  try{
+    if(!window.pdfjsLib) throw new Error("Pustaka render PDF gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
+    await loadDoc(bytes);
+    $("sSize").textContent=fmtSize(f.size)+" · "+doc.n+" halaman";
+    updateStatus();
+  }catch(e){
+    resetDoc(); show(m,"bad","<b>PDF tidak bisa dibuka.</b> "+esc(e.message||"File mungkin rusak."));
+  }
+}, [$("stage")]);
+$("btnChange").addEventListener("click",()=>$("sFile").click());
+
 function randomPassword(n){
   const cs="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*+=?";
   const r=new Uint32Array(n); crypto.getRandomValues(r); return Array.from(r,x=>cs[x%cs.length]).join("");
 }
 async function renderToImages(bytes, scale, antiStrength, onProg){
-  if(!pdfjsLib.GlobalWorkerOptions.workerSrc) pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  const doc=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
+  ensureWorker();
+  const pdf=await pdfjsLib.getDocument({data:bytes.slice()}).promise;
   const cv=document.createElement("canvas"), cx=cv.getContext("2d");
-  const out=await Core.rasterize(doc.numPages, async i=>{
-    const page=await doc.getPage(i);
+  const out=await Core.rasterize(pdf.numPages, async i=>{
+    const page=await pdf.getPage(i);
     const vp1=page.getViewport({scale:1}), vp=page.getViewport({scale});
     cv.width=Math.ceil(vp.width); cv.height=Math.ceil(vp.height);
     cx.fillStyle="#fff"; cx.fillRect(0,0,cv.width,cv.height);
@@ -991,33 +1788,45 @@ async function renderToImages(bytes, scale, antiStrength, onProg){
     page.cleanup();
     return { jpg:new Uint8Array(await blob.arrayBuffer()), width:vp1.width, height:vp1.height };
   }, (i,n)=>{ onProg&&onProg(i,n); });
-  await doc.destroy();
+  await pdf.destroy();
   return out;
 }
-$("oStamp").addEventListener("change",e=>$("stampOpts").hidden=!e.target.checked);
-$("oEncrypt").addEventListener("change",e=>$("encOpts").hidden=!e.target.checked);
-$("oScan").addEventListener("change",e=>$("scanOpts").hidden=!e.target.checked);
-$("oAntiOcr").addEventListener("change",e=>$("antiOcrOpts").style.display=e.target.checked?"block":"none");
+$("oEncrypt").addEventListener("change",e=>{ $("encOpts").hidden=!e.target.checked; updateSummary(); });
+$("oScan").addEventListener("change",e=>{ $("scanOpts").hidden=!e.target.checked; updateSummary(); });
+$("oCertify").addEventListener("change",updateSummary);
+$("oAntiOcr").addEventListener("change",e=>{ $("antiOcrOpts").hidden=!e.target.checked; updateSummary(); });
 function antiWarn(){
   const v=$("oAntiStr").value, el=$("antiWarn");
-  if(v==="kuat"){ el.className="msg warn"; el.style.padding="8px 10px"; el.innerHTML="Halaman akan tampak bergaris seperti fotokopi lama — masih terbaca, tapi tidak rapi. Ini satu-satunya tingkat yang benar-benar menghentikan OCR."; }
-  else if(v==="sedang"){ el.className="hint"; el.style.padding="0"; el.textContent="Tampilan hampir bersih, tapi OCR masih bisa membaca bila gambarnya dibersihkan. Pilih Kuat untuk benar-benar memblokir OCR."; }
-  else { el.className="hint"; el.style.padding="0"; el.textContent="Hanya penanda visual; tidak menghentikan OCR."; }
+  if(v==="kuat"){ el.className="msg warn"; el.innerHTML="Halaman akan tampak bergaris seperti fotokopi lama — masih terbaca, tapi tidak rapi. Ini satu-satunya tingkat yang benar-benar menghentikan OCR."; }
+  else if(v==="sedang"){ el.className="hint"; el.textContent="Tampilan hampir bersih, tapi OCR masih bisa membaca bila gambarnya dibersihkan. Pilih Kuat untuk benar-benar memblokir OCR."; }
+  else { el.className="hint"; el.textContent="Hanya penanda visual; tidak menghentikan OCR."; }
 }
 $("oAntiStr").addEventListener("change",antiWarn); antiWarn();
 $("oProtect").addEventListener("change",()=>{ delete $("oFooterText").dataset.touched; refreshFooter(); });
-$("oFooter").addEventListener("change",e=>$("footerWrap").hidden=!e.target.checked);
+$("oFooter").addEventListener("change",e=>{ $("footerWrap").hidden=!e.target.checked; updateSummary(); });
+
+function updateSummary(){
+  const ck=i=>$(i).checked, chips=[["Tanda tangan digital",true]];
+  if(ck("oCertify")) chips.push(["Kunci anti-ubah",true]);
+  if(ck("oEncrypt")) chips.push(["AES-256",true]);
+  if(ck("oScan")) chips.push([ck("oAntiOcr")?"Gambar + anti-OCR":"Halaman gambar",true]);
+  if(ck("oStamp") && stamps.length) chips.push([stamps.length+" cap",true]);
+  if(ck("oFooter")) chips.push(["Catatan kaki",true]);
+  $("actSum").innerHTML=chips.map(([t])=>`<span><svg aria-hidden="true"><use href="#i-check"/></svg>${esc(t)}</span>`).join("");
+  $("protBadge").textContent=[ck("oCertify"),ck("oEncrypt"),ck("oScan")].filter(Boolean).length+" aktif";
+}
 
 $("btnSign").addEventListener("click", async ()=>{
   const m=$("signMsg");
-  if(!srcBytes){ $("sDrop").focus(); return show(m,"warn","<b>Pilih PDF dulu.</b> Letakkan file PDF di kotak di atas, atau klik kotaknya."); }
+  if(!srcBytes){ $("sDrop").focus(); $("sDrop").scrollIntoView({block:"center",behavior:"smooth"}); return show(m,"warn","<b>Pilih PDF dulu.</b> Letakkan file PDF di kotak langkah 2, atau klik kotaknya."); }
+  if($("oStamp").checked && !stamps.length){ $("btnAddStamp").focus(); return show(m,"warn","<b>Belum ada cap di halaman mana pun.</b> Klik \"Tambah cap\", atau matikan \"Tampilkan cap\" bila memang tidak ingin cap terlihat."); }
   if(!identity){
-    if(!$("nPw").value){ $("nPw").scrollIntoView({block:"center"}); $("nPw").focus();
-      return show(m,"warn","<b>Sertifikat belum dibuat.</b> Isi kata sandi sertifikat di langkah 1 (kiri), lalu klik lagi tombol ini."); }
+    if(!$("nPw").value){ $("nPw").scrollIntoView({block:"center",behavior:"smooth"}); $("nPw").focus();
+      return show(m,"warn","<b>Sertifikat belum dibuat.</b> Isi kata sandi sertifikat di langkah 1, lalu klik lagi tombol ini."); }
     show(m,"warn",'<span class="spin"></span>Membuat sertifikat…');
-    if(!(await createFromForm())) return show(m,"bad","Periksa isian di langkah 1 (kiri).");
+    if(!(await createFromForm())) return show(m,"bad","Periksa isian di langkah 1.");
   }
-  if(!unlocked){ $("uPw").scrollIntoView({block:"center"}); $("uPw").focus(); return show(m,"warn","<b>Kunci sertifikat masih tertutup.</b> Masukkan kata sandi di langkah 1, klik Buka kunci, lalu klik lagi tombol ini."); }
+  if(!unlocked){ $("uPw").scrollIntoView({block:"center",behavior:"smooth"}); $("uPw").focus(); return show(m,"warn","<b>Kunci sertifikat masih tertutup.</b> Masukkan kata sandi di langkah 1, klik Buka kunci, lalu klik lagi tombol ini."); }
   const b=$("btnSign"); b.disabled=true; $("dlWrap").hidden=true; outBytes=null;
   show(m,"warn",'<span class="spin"></span>Menyiapkan…');
   try{
@@ -1029,6 +1838,7 @@ $("btnSign").addEventListener("click", async ()=>{
       base=await renderToImages(srcBytes, parseFloat($("oScanQ").value), anti, (i,n)=>show(m,"warn",`<span class="spin"></span>Mengubah halaman ${i} dari ${n} menjadi gambar…`));
     }
     const ownerPw = $("oEncrypt").checked ? randomPassword(32) : "";
+    const placements = $("oStamp").checked ? stamps.slice().sort((a,c)=>a.page-c.page||a.fy-c.fy).map(s=>({page:s.page, fx:s.fx, fy:s.fy, fw:s.fw})) : [];
     show(m,"warn",'<span class="spin"></span>Mengenkripsi dan menandatangani…'); await tick();
     const r=await Core.signPdf(base, unlocked, {
       jabatan:$("oJab").value.trim(),
@@ -1037,9 +1847,7 @@ $("btnSign").addEventListener("click", async ()=>{
       location:$("oLoc").value.trim(),
       contact:Core.field(unlocked.cert,"E"),
       certify:$("oCertify").checked,
-      stamp:$("oStamp").checked,
-      stampPage:$("oPage").value,
-      stampPos:(document.querySelector('input[name=pos]:checked')||{}).value||"br",
+      placements, stampStyle:readStyle(),
       footer:$("oFooter").checked ? $("oFooterText").value.trim() : ""
     });
     // periksa hasil sendiri sebelum diserahkan
@@ -1048,16 +1856,17 @@ $("btnSign").addEventListener("click", async ()=>{
     const head=String.fromCharCode.apply(null, r.bytes.subarray(0,5)), tailTxt=String.fromCharCode.apply(null, r.bytes.subarray(r.bytes.length-32));
     if(head!=="%PDF-" || tailTxt.indexOf("%%EOF")<0) throw new Error("Struktur PDF hasil tidak lengkap. Dokumen tidak disimpan.");
     outBytes=r.bytes;
-    const layers=[ "tanda tangan digital", $("oCertify").checked?"kunci anti-perubahan":null, $("oEncrypt").checked?"enkripsi AES-256":null, $("oScan").checked?($("oAntiOcr").checked?"halaman gambar + anti-OCR":"halaman berupa gambar"):null ].filter(Boolean).join(", ");
+    const pages=new Set(placements.map(p=>p.page)).size;
+    const layers=[ "tanda tangan digital", $("oCertify").checked?"kunci anti-perubahan":null, $("oEncrypt").checked?"enkripsi AES-256":null, $("oScan").checked?($("oAntiOcr").checked?"halaman gambar + anti-OCR":"halaman berupa gambar"):null, placements.length?`${placements.length} cap di ${pages} halaman`:null ].filter(Boolean).join(", ");
     let html=`<b>Dokumen ditandatangani.</b> ${esc(r.signer)} — ${esc(Core.tanggalID(r.date))}. ID dokumen ${esc(r.docId)}. Lapisan: ${esc(layers)}. Sudah diperiksa ulang: sah dan utuh.`;
     if($("oOpenPw").value && $("oEncrypt").checked) html+=`<br><br><b>Ingat:</b> penerima perlu kata sandi buka yang Anda isi.`;
     if(ownerPw) html+=`<br><br>Kunci pemilik (untuk membuka batasan kelak — simpan bila perlu, tidak bisa dipulihkan):<div class="pwbox">${esc(ownerPw)}</div>`;
     show(m,"ok",html);
-    $("dlWrap").hidden=false;
+    $("dlWrap").hidden=false; $("btnDl").focus({preventScroll:true});
   }catch(e){
     const msg=/encrypt/i.test(e.message) ? "PDF ini terkunci password. Buka kuncinya dulu, lalu coba lagi." : e.message;
     show(m,"bad","Gagal menandatangani: "+esc(msg));
-  }finally{ b.disabled=false; updateSignBtn(); }
+  }finally{ b.disabled=false; }
 });
 $("btnDl").addEventListener("click", async ()=>{
   if(!outBytes) return show($("signMsg"),"warn","Belum ada dokumen yang ditandatangani.");
@@ -1069,7 +1878,7 @@ $("btnDl").addEventListener("click", async ()=>{
 bindDrop("vDrop","vFile", async f=>{
   const out=$("vOut");
   if(!isPdf(f)){ out.innerHTML='<div class="msg bad">File harus berformat PDF.</div>'; return; }
-  out.innerHTML='<div class="empty"><span class="spin"></span>Memeriksa…</div>';
+  out.innerHTML='<div class="empty"><span><span class="spin"></span>Memeriksa…</span></div>';
   await tick();
   let res;
   try{ const vb=new Uint8Array(await f.arrayBuffer()); window.__lastEncrypted=Core.isEncrypted(vb); res=Core.verifyPdf(vb); }
@@ -1092,7 +1901,7 @@ bindDrop("vDrop","vFile", async f=>{
       title="Tidak ada tanda tangan elektronik";
       desc="Dokumen <b>"+esc(f.name)+"</b> tidak memiliki tanda tangan digital di dalamnya, jadi keasliannya tidak bisa dibuktikan secara elektronik.";
     }
-    out.innerHTML=verdictHTML(cls,cls==="bad"?"\u2715":"!",title,desc,"")+explainHTML();
+    out.innerHTML=verdictHTML(cls,cls==="bad"?"✕":"!",title,desc,"")+explainHTML();
     return;
   }
   out.innerHTML = res.map((r,i)=>renderResult(r,i,res.length,f.name)).join("") + explainHTML();
@@ -1137,7 +1946,7 @@ function explainHTML(){
 }
 
 /* ---------- mulai ---------- */
-identity=lsGet(); renderIdentity();
+identity=lsGet(); renderIdentity(); updateSummary(); renderStampPreview();
 })();
 </script>
 </body>
