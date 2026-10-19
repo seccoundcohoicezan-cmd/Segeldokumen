@@ -1,0 +1,10 @@
+{
+  "name": "segel-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API riwayat segel (PostgreSQL) untuk Segel Digital Universitas STEKOM",
+  "main": "server.js",
+  "scripts": { "start": "node server.js", "test": "node test.js" },
+  "engines": { "node": ">=20" },
+  "dependencies": { "pg": "8.13.1" }
+}
