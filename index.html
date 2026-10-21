@@ -213,6 +213,8 @@ input[type=file]{display:none}
 .sw input:checked+span{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--c)}
 .sw input:focus-visible+span{outline:2px solid var(--ink);outline-offset:4px}
 .sw label:hover span{transform:scale(1.08)}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.dot--accent{background:var(--stamp-c,#0d6b5e)}
 .toggles{display:flex;flex-wrap:wrap;gap:2px var(--s4)}
 
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);margin-top:var(--s4);padding:var(--s2);border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2)}
@@ -728,6 +730,37 @@ table.hist tr:last-child td{border-bottom:none}
                   </div>
                 </div>
                 <div class="style__row" style="margin-top:12px;align-items:flex-start">
+                  <span class="style__lbl" id="lblBorder" style="padding-top:8px">Bingkai</span>
+                  <div style="flex:1;min-width:240px">
+                    <div class="seg" role="radiogroup" aria-labelledby="lblBorder">
+                      <label><input type="radio" name="border" value="none"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x="3" y="3" width="6" height="10" fill="currentColor"/><path d="M12 5h7M12 8h6M12 11h4" stroke="currentColor"/></svg>Tanpa bingkai</span></label>
+                      <label><input type="radio" name="border" value="tipis" checked><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x=".5" y=".5" width="21" height="15" rx="1" fill="none" stroke="currentColor"/><rect x="3" y="3" width="6" height="10" fill="currentColor"/><path d="M12 5h7M12 8h6" stroke="currentColor"/></svg>Garis tipis</span></label>
+                      <label><input type="radio" name="border" value="tebal"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x="1" y="1" width="20" height="14" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3.5" y="3.5" width="5.5" height="9" fill="currentColor"/><path d="M12 5.5h6.5M12 8.5h5.5" stroke="currentColor"/></svg>Garis tebal</span></label>
+                      <label><input type="radio" name="border" value="putus"><span><svg viewBox="0 0 22 16" aria-hidden="true"><rect x=".5" y=".5" width="21" height="15" rx="1" fill="none" stroke="currentColor" stroke-dasharray="2 1.5"/><rect x="3" y="3" width="6" height="10" fill="currentColor"/><path d="M12 5h7M12 8h6" stroke="currentColor"/></svg>Putus-putus</span></label>
+                    </div>
+                    <div id="borderOpts" style="margin-top:8px">
+                      <div class="style__row">
+                        <div class="seg" role="radiogroup" aria-label="Warna garis bingkai">
+                          <label><input type="radio" name="bcolor" value="accent" checked><span><i class="dot dot--accent" aria-hidden="true"></i>Ikut warna cap</span></label>
+                          <label><input type="radio" name="bcolor" value="abu"><span><i class="dot" style="--c:#9aa1aa" aria-hidden="true"></i>Abu-abu</span></label>
+                          <label><input type="radio" name="bcolor" value="hitam"><span><i class="dot" style="--c:#1f2630" aria-hidden="true"></i>Hitam</span></label>
+                        </div>
+                        <label class="mini"><input type="checkbox" id="sjRound"> Sudut membulat</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="style__row" style="margin-top:12px;align-items:flex-start">
+                  <span class="style__lbl" id="lblBg" style="padding-top:8px">Latar</span>
+                  <div style="flex:1;min-width:240px">
+                    <div class="seg" role="radiogroup" aria-labelledby="lblBg">
+                      <label><input type="radio" name="bg" value="putih" checked><span>Putih</span></label>
+                      <label><input type="radio" name="bg" value="transparan"><span>Transparan</span></label>
+                    </div>
+                    <p class="fieldhint">Pilih <b>Tanpa bingkai</b> + <b>Transparan</b> agar cap menyatu dengan dokumen seperti tanda tangan biasa. Kode QR selalu diberi latar putih tipis agar tetap mudah dipindai.</p>
+                  </div>
+                </div>
+                <div class="style__row" style="margin-top:12px;align-items:flex-start">
                   <span class="style__lbl" id="lblQrLogo" style="padding-top:8px">Logo QR</span>
                   <div>
                     <div class="seg" role="radiogroup" aria-labelledby="lblQrLogo">
@@ -751,8 +784,6 @@ table.hist tr:last-child td{border-bottom:none}
                     <label class="mini"><input type="checkbox" id="sjOrg" checked> Instansi</label>
                     <label class="mini"><input type="checkbox" id="sjDate" checked> Tanggal</label>
                     <label class="mini"><input type="checkbox" id="sjId" checked> ID dokumen</label>
-                    <label class="mini"><input type="checkbox" id="sjBorder" checked> Bingkai</label>
-                    <label class="mini"><input type="checkbox" id="sjBg" checked> Latar putih</label>
                   </div>
                 </div>
                 <div class="field" style="max-width:420px"><label class="l" for="sjHead">Judul cap</label><input id="sjHead" type="text" maxlength="60" value="Ditandatangani secara elektronik"></div>
@@ -954,7 +985,7 @@ table.hist tr:last-child td{border-bottom:none}
   }
 
   /* ---------- cap tanda tangan ---------- */
-  const STAMP_DEFAULT = { layout: "qr-kiri", color: "#0d6b5e", border: true, bg: true, heading: "Ditandatangani secara elektronik", jabatan: true, org: true, date: true, id: true };
+  const STAMP_DEFAULT = { layout: "qr-kiri", color: "#0d6b5e", border: "tipis", borderColor: "accent", round: false, bg: true, heading: "Ditandatangani secara elektronik", jabatan: true, org: true, date: true, id: true };
   const LOCK_PATH = "M7 10V7a5 5 0 0 1 10 0v3h1.5A1.5 1.5 0 0 1 20 11.5v9A1.5 1.5 0 0 1 18.5 22h-13A1.5 1.5 0 0 1 4 20.5v-9A1.5 1.5 0 0 1 5.5 10H7Zm2 0h6V7a3 3 0 0 0-6 0v3Z";
   function hexRgb(h) {
     const m = /^#?([0-9a-f]{6})$/i.exec(h || ""); if (!m) return rgb(0.05, 0.42, 0.37);
@@ -972,8 +1003,15 @@ table.hist tr:last-child td{border-bottom:none}
   }
   /* Cap digambar di dokumen satu halaman tersendiri lalu ditanam sebagai Form XObject:
      satu desain bisa dipasang di banyak halaman, diskalakan, dan diputar mengikuti halaman. */
+  const BORDER_W = { tipis: 0.8, tebal: 1.6, putus: 0.9 };
+  const BORDER_C = { abu: "#9aa1aa", hitam: "#1f2630" };
+  // Rounded-rect sebagai path SVG (titik asal kiri-atas, y ke bawah) untuk drawSvgPath.
+  const roundRectPath = (w, h, r) => `M${r} 0H${w - r}A${r} ${r} 0 0 1 ${w} ${r}V${h - r}A${r} ${r} 0 0 1 ${w - r} ${h}H${r}A${r} ${r} 0 0 1 0 ${h - r}V${r}A${r} ${r} 0 0 1 ${r} 0Z`;
   async function buildStamp(info, style) {
     const st = Object.assign({}, STAMP_DEFAULT, style || {});
+    // gaya lama menyimpan border sebagai boolean
+    if (st.border === true) st.border = "tipis";
+    if (!BORDER_W[st.border]) st.border = "none";
     const doc = await PDFDocument.create();
     const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
     const accent = hexRgb(st.color), ink = rgb(0.12, 0.14, 0.18), mute = rgb(0.35, 0.38, 0.42);
@@ -1026,11 +1064,16 @@ table.hist tr:last-child td{border-bottom:none}
     }
     W = Math.round(W * 100) / 100; H = Math.round(H * 100) / 100;
     page = doc.addPage([W, H]);
-    if (st.bg || st.border) {
-      const o = st.border ? 0.4 : 0;
-      page.drawRectangle({ x: o, y: o, width: W - 2 * o, height: H - 2 * o,
+    const bw = BORDER_W[st.border] || 0;
+    if (st.bg || bw) {
+      const o = bw / 2, w = W - bw, h = H - bw;
+      const box = {
         color: st.bg ? rgb(1, 1, 1) : undefined, opacity: st.bg ? 0.96 : undefined,
-        borderColor: st.border ? accent : undefined, borderWidth: st.border ? 0.8 : 0 });
+        borderColor: bw ? (BORDER_C[st.borderColor] ? hexRgb(BORDER_C[st.borderColor]) : accent) : undefined,
+        borderWidth: bw, borderDashArray: st.border === "putus" ? [3, 2] : undefined
+      };
+      if (st.round) page.drawSvgPath(roundRectPath(w, h, Math.min(6, h / 4)), Object.assign({ x: o, y: H - o }, box));
+      else page.drawRectangle(Object.assign({ x: o, y: o, width: w, height: h }, box));
     }
     if (qs) {
       const qrText = `SEGEL DIGITAL - UNIVERSITAS STEKOM\nPenanda tangan: ${info.signer}${info.nidn ? "\nNIDN: " + info.nidn : ""}\nWaktu: ${info.date ? info.date.toISOString() : ""}\nID dokumen: ${info.docId || ""}\nSidik sertifikat SHA-256: ${String(info.fp || "").replace(/:/g, "")}`;
@@ -1813,14 +1856,19 @@ function radioVal(name){ const r=document.querySelector(`input[name=${name}]:che
 function readStyle(){
   return { layout:radioVal("layout"), color:radioVal("color"), heading:$("sjHead").value.trim(),
     jabatan:$("sjJab").checked, org:$("sjOrg").checked, date:$("sjDate").checked, id:$("sjId").checked,
-    border:$("sjBorder").checked, bg:$("sjBg").checked, qrlogo:radioVal("qrlogo") };
+    border:radioVal("border"), borderColor:radioVal("bcolor"), round:$("sjRound").checked,
+    bg:radioVal("bg")!=="transparan", qrlogo:radioVal("qrlogo") };
 }
 function applyStyle(st){
   if(!st) return;
   const set=(name,v)=>{ const r=document.querySelector(`input[name=${name}][value="${v}"]`); if(r) r.checked=true; };
   set("layout",st.layout); set("color",st.color); if(st.qrlogo) set("qrlogo",st.qrlogo);
+  if("border" in st) set("border", st.border===true?"tipis":st.border===false?"none":st.border);
+  if(st.borderColor) set("bcolor",st.borderColor);
+  if("bg" in st) set("bg", st.bg?"putih":"transparan");
+  if("round" in st) $("sjRound").checked=!!st.round;
   if(typeof st.heading==="string") $("sjHead").value=st.heading;
-  [["sjJab","jabatan"],["sjOrg","org"],["sjDate","date"],["sjId","id"],["sjBorder","border"],["sjBg","bg"]].forEach(([i,k])=>{ if(k in st) $(i).checked=!!st[k]; });
+  [["sjJab","jabatan"],["sjOrg","org"],["sjDate","date"],["sjId","id"]].forEach(([i,k])=>{ if(k in st) $(i).checked=!!st[k]; });
 }
 applyStyle(lsGet(ST_KEY));
 
@@ -1897,8 +1945,13 @@ async function renderStampPreview(){
 }
 const queuePreview=debounce(renderStampPreview,120);
 
-function onStyleChange(){ lsSet(readStyle(),ST_KEY); queuePreview(); syncLogoUi(); }
-document.querySelectorAll("input[name=layout],input[name=color],#sjJab,#sjOrg,#sjDate,#sjId,#sjBorder,#sjBg").forEach(el=>el.addEventListener("change",onStyleChange));
+function syncBorderUi(){
+  $("borderOpts").hidden=radioVal("border")==="none";
+  $("stampTools").style.setProperty("--stamp-c",radioVal("color")||"#0d6b5e");
+}
+syncBorderUi();
+function onStyleChange(){ lsSet(readStyle(),ST_KEY); queuePreview(); syncLogoUi(); syncBorderUi(); }
+document.querySelectorAll("input[name=layout],input[name=color],input[name=border],input[name=bcolor],input[name=bg],#sjRound,#sjJab,#sjOrg,#sjDate,#sjId").forEach(el=>el.addEventListener("change",onStyleChange));
 $("sjHead").addEventListener("input",onStyleChange);
 
 /* ---- geometri ---- */
