@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/segel", "destination": "https://api-segel.31-97-110-117.sslip.io/" },
+    { "source": "/api/segel/health", "destination": "https://api-segel.31-97-110-117.sslip.io/health" }
+  ]
+}
