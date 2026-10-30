@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/segel", "destination": "https://api-segel.31-97-110-117.sslip.io/" },
-    { "source": "/api/segel/health", "destination": "https://api-segel.31-97-110-117.sslip.io/health" }
+    { "source": "/api/segel", "destination": "https://segeldokumen.194-238-23-221.sslip.io/api/segel" },
+    { "source": "/api/segel/health", "destination": "https://segeldokumen.194-238-23-221.sslip.io/api/segel/health" }
   ]
 }
