@@ -9,10 +9,13 @@
  *   SYNC_TOKEN              SHA-256 hex dari "sync|<kata sandi login>" (sama dengan yang dikirim web)
  *   ALLOWED_ORIGINS         daftar origin dipisah koma, mis. https://segeldokumen.vercel.app
  *   PORT                    default 3000
+ *   PUBLIC_DIR              folder berisi index.html (opsional). Jika ada, GET / menyajikan web; API tetap di POST / dan POST /api/segel
  *   MAX_RECORDS             default 500
  */
 const http = require('http');
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { Pool } = require('pg');
 
 const PORT = Number(process.env.PORT || 3000);
@@ -20,6 +23,12 @@ const MAX_RECORDS = Number(process.env.MAX_RECORDS || 500);
 const TOKEN = process.env.SYNC_TOKEN || '';
 const ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://segeldokumen.vercel.app').split(',').map(s => s.trim()).filter(Boolean);
 if (!/^[0-9a-f]{64}$/.test(TOKEN)) { console.error('SYNC_TOKEN wajib diisi (SHA-256 hex 64 karakter).'); process.exit(1); }
+
+// web statis (opsional): dibaca sekali saat start
+const PUBLIC_DIR = process.env.PUBLIC_DIR || path.join(__dirname, 'public');
+let PAGE = null;
+try { PAGE = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html')); } catch (e) {}
+const PAGE_ETAG = PAGE && '"' + crypto.createHash('sha1').update(PAGE).digest('hex').slice(0, 16) + '"';
 
 const pool = new Pool(process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL, max: 5 } : { max: 5 });
 
@@ -99,13 +108,20 @@ const server = http.createServer((req, res) => {
     res.writeHead(204, Object.assign({}, headers, { 'Access-Control-Allow-Methods': 'POST, GET, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' }));
     return res.end();
   }
-  if (req.method === 'GET') {
-    if (req.url === '/health' || req.url === '/') {
+  const url = (req.url || '/').split('?')[0].replace(/\/+$/, '') || '/';
+  if (req.method === 'GET' || req.method === 'HEAD') {
+    if (url === '/' && PAGE) {
+      const h = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache', 'ETag': PAGE_ETAG, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'X-Frame-Options': 'SAMEORIGIN' };
+      if (req.headers['if-none-match'] === PAGE_ETAG) { res.writeHead(304, h); return res.end(); }
+      res.writeHead(200, h); return res.end(req.method === 'HEAD' ? undefined : PAGE);
+    }
+    if (url === '/health' || url === '/' || url === '/api/segel' || url === '/api/segel/health') {
       return pool.query('SELECT 1').then(() => send(200, { ok: true, service: 'segel-api', db: true }), () => send(503, { ok: false, service: 'segel-api', db: false }));
     }
     return send(404, { ok: false, error: 'not_found' });
   }
   if (req.method !== 'POST') return send(405, { ok: false, error: 'method_not_allowed' });
+  if (url !== '/' && url !== '/api/segel') return send(404, { ok: false, error: 'not_found' });
   if (origin && !allow) return send(403, { ok: false, error: 'origin_not_allowed' });
 
   let body = '', size = 0, dead = false;
