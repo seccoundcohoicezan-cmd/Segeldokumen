@@ -1076,16 +1076,18 @@ table.hist tr:last-child td{border-bottom:none}
       else page.drawRectangle(Object.assign({ x: o, y: o, width: w, height: h }, box));
     }
     if (qs) {
-      const qrText = `SEGEL DIGITAL - UNIVERSITAS STEKOM\nPenanda tangan: ${info.signer}${info.nidn ? "\nNIDN: " + info.nidn : ""}\nWaktu: ${info.date ? info.date.toISOString() : ""}\nID dokumen: ${info.docId || ""}\nSidik sertifikat SHA-256: ${String(info.fp || "").replace(/:/g, "")}`;
+      // isi QR sengaja ringkas: makin sedikit data, makin besar kotak QR, makin mudah dipindai kamera HP.
+      // Sidik sertifikat lengkap tetap ada di tanda tangan digital (menu Periksa keaslian).
+      const qrText = `SEGEL DIGITAL STEKOM\nNama: ${info.signer}${info.nidn ? "\nNIDN: " + info.nidn : ""}${info.date ? "\nWaktu: " + tanggalID(info.date) : ""}\nID: ${info.docId || ""}`;
       const q = qrcode(0, info.qrLogo ? "Q" : "M"); q.addData(unescape(encodeURIComponent(qrText))); q.make();
       const n = q.getModuleCount(), cell = qs / n, qy = H - qyTop - qs;
       if (!st.bg) page.drawRectangle({ x: qx - 2, y: qy - 2, width: qs + 4, height: qs + 4, color: rgb(1, 1, 1) });
       for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
         if (q.isDark(r, c)) page.drawRectangle({ x: qx + c * cell, y: qy + qs - (r + 1) * cell, width: cell + 0.02, height: cell + 0.02, color: rgb(0, 0, 0) });
       if (info.qrLogo) {
-        // logo di tengah QR: ±24% sisi (±6% luas), jauh di bawah batas koreksi galat level Q
+        // logo di tengah QR: 22% sisi (±5% luas), jauh di bawah batas koreksi galat level Q (25%)
         let img; try { img = await doc.embedPng(info.qrLogo); } catch (e) { img = await doc.embedJpg(info.qrLogo); }
-        const box = qs * 0.27, pd = box * 0.1, bx = qx + (qs - box) / 2, by = qy + (qs - box) / 2;
+        const box = qs * 0.22, pd = box * 0.1, bx = qx + (qs - box) / 2, by = qy + (qs - box) / 2;
         page.drawRectangle({ x: bx, y: by, width: box, height: box, color: rgb(1, 1, 1) });
         const k = Math.min((box - 2 * pd) / img.width, (box - 2 * pd) / img.height);
         page.drawImage(img, { x: bx + (box - img.width * k) / 2, y: by + (box - img.height * k) / 2, width: img.width * k, height: img.height * k });
@@ -1951,7 +1953,7 @@ function syncBorderUi(){
 }
 syncBorderUi();
 function onStyleChange(){ lsSet(readStyle(),ST_KEY); queuePreview(); syncLogoUi(); syncBorderUi(); }
-document.querySelectorAll("input[name=layout],input[name=color],input[name=border],input[name=bcolor],input[name=bg],#sjRound,#sjJab,#sjOrg,#sjDate,#sjId").forEach(el=>el.addEventListener("change",onStyleChange));
+document.querySelectorAll("input[name=layout],input[name=color],input[name=border],input[name=bcolor],input[name=bg],input[name=qrlogo],#sjRound,#sjJab,#sjOrg,#sjDate,#sjId").forEach(el=>el.addEventListener("change",onStyleChange));
 $("sjHead").addEventListener("input",onStyleChange);
 
 /* ---- geometri ---- */
