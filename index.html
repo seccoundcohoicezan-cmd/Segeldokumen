@@ -148,6 +148,23 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary)
 .idcard{border:1px solid var(--line);border-radius:var(--r);padding:var(--s4);display:flex;gap:var(--s3);align-items:flex-start;background:var(--surface-2)}
 .idcard .av{width:44px;height:44px;border-radius:12px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:700;flex:none}
 .idcard .nm{font-weight:700}
+.reg{border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);padding:var(--s3);margin-bottom:var(--s4)}
+.reg h3{font-size:.92rem;margin:0 0 4px}
+.reg .hint{margin:0 0 var(--s2)}
+.reglist{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:260px;overflow:auto}
+.regitem{display:flex;gap:var(--s3);align-items:center;width:100%;text-align:left;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:8px var(--s3);cursor:pointer;min-height:44px}
+.regitem:hover{border-color:var(--line-strong)}
+.regitem[aria-pressed="true"]{border-color:var(--primary);box-shadow:inset 3px 0 0 var(--primary)}
+.regitem .av{width:34px;height:34px;border-radius:10px;background:var(--primary);color:var(--on-primary);display:grid;place-items:center;font-weight:700;font-size:.8rem;flex:none}
+.regitem b{display:block;font-size:.88rem}
+.regitem .mono{font-family:var(--mono)}
+.regitem span.s{display:block;font-size:.76rem;color:var(--ink-soft);word-break:break-word}
+table.hist.idt{min-width:0}
+.idt .fpx{word-break:break-all;margin-top:2px}
+.idt td:last-child{text-align:right;white-space:nowrap}
+@media(max-width:599px){.idt .c-date{display:none}}
+.regor{display:flex;align-items:center;gap:var(--s2);color:var(--ink-faint);font-size:.78rem;margin:var(--s3) 0}
+.regor::before,.regor::after{content:"";flex:1;border-top:1px solid var(--line)}
 .idcard .meta{font-size:.82rem;color:var(--ink-soft);word-break:break-word}
 .fp{font-family:var(--mono);font-size:.7rem;color:var(--ink-soft);word-break:break-all;margin-top:6px;line-height:1.5}
 
@@ -354,7 +371,7 @@ table.hist tr:last-child td{border-bottom:none}
 .tag{display:inline-block;font-size:.72rem;font-weight:600;color:var(--primary);background:var(--primary-soft);border-radius:999px;padding:2px 8px;margin:0 4px 4px 0}
 .logorow{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2)}
 .logorow img{width:34px;height:34px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff;padding:2px}
-@media(max-width:479px){.tab{min-width:0;padding:0 var(--s2);font-size:.8rem}.tab svg{display:none}#btnLogout{padding:0 var(--s2)}}
+@media(max-width:479px){.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}.tab{flex:none;min-width:0;padding:0 var(--s2);font-size:.8rem}.tab svg{display:none}#btnLogout{padding:0 var(--s2)}}
 .foot{flex-wrap:wrap}
 .foot img{width:18px;height:18px;object-fit:contain}
 
@@ -475,6 +492,7 @@ table.hist tr:last-child td{border-bottom:none}
   <symbol id="i-trash" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 7h16M10 11v6m4-6v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
   <symbol id="i-clock" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2M21 12a9 9 0 1 1-3-6.7M21 4v4h-4"/></symbol>
   <symbol id="i-out" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-6 10v-1a6 6 0 0 1 12 0v1m2-10 2 2 4-4"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m3 11 9-8 9 8M5 10v10h5v-6h4v6h5V10"/></symbol>
   <symbol id="i-sync" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 11a8 8 0 0 0-14-4M4 4v4h4M4 13a8 8 0 0 0 14 4M20 20v-4h-4"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-6-6 6 6-6 6"/></symbol>
@@ -504,6 +522,7 @@ table.hist tr:last-child td{border-bottom:none}
       <button class="tab" role="tab" id="tabSign" aria-selected="false" aria-controls="pSign" tabindex="-1"><svg aria-hidden="true"><use href="#i-pen"/></svg><span class="lg">Tanda tangani PDF</span><span class="sm">Tanda tangan</span></button>
       <button class="tab" role="tab" id="tabVerify" aria-selected="false" aria-controls="pVerify" tabindex="-1"><svg aria-hidden="true"><use href="#i-shield"/></svg><span class="lg">Periksa keaslian</span><span class="sm">Periksa</span></button>
       <button class="tab" role="tab" id="tabHist" aria-selected="false" aria-controls="pHist" tabindex="-1"><svg aria-hidden="true"><use href="#i-clock"/></svg><span class="lg">Riwayat segel</span><span class="sm">Riwayat</span></button>
+      <button class="tab" role="tab" id="tabIds" aria-selected="false" aria-controls="pIds" tabindex="-1"><svg aria-hidden="true"><use href="#i-user"/></svg><span class="lg">Kelola identitas</span><span class="sm">Identitas</span></button>
     </div>
     <div class="top__tools">
       <span class="pill"><svg aria-hidden="true"><use href="#i-device"/></svg>Diproses di perangkat Anda</span>
@@ -573,7 +592,18 @@ table.hist tr:last-child td{border-bottom:none}
           <p class="lead">Sertifikat digital milik Anda. Buat sekali, pakai untuk semua dokumen.</p>
 
           <div id="idNone">
-            <div class="field"><label class="l" for="nName">Nama lengkap</label><input id="nName" type="text" autocomplete="name" value="Dr. Joseph Teguh Santoso, M.Kom"></div>
+            <div class="reg" id="regBox" hidden>
+              <h3>Identitas yang sudah terdaftar</h3>
+              <p class="hint">Tersimpan di server STEKOM dan tampil di semua perangkat. Pilih nama Anda lalu masukkan kata sandi sertifikatnya. Tidak perlu membuat baru.</p>
+              <ul class="reglist" id="regList"></ul>
+              <div id="regUse" hidden>
+                <div class="field" style="margin-top:var(--s3)"><label class="l" for="rPw">Kata sandi sertifikat <span id="rName"></span></label><div class="pwrap"><input id="rPw" class="pw" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore><button class="pwtog" type="button" data-tog="rPw" aria-label="Tampilkan kata sandi" aria-pressed="false">Lihat</button></div></div>
+                <div class="btns"><button class="btn btn--primary" id="btnRegUse" type="button"><svg aria-hidden="true"><use href="#i-lock"/></svg>Pakai identitas ini</button></div>
+              </div>
+              <div class="msg" id="regMsg" role="status" hidden></div>
+            </div>
+            <div class="regor" id="regOr" hidden>atau buat identitas baru</div>
+            <div class="field"><label class="l" for="nName">Nama lengkap</label><input id="nName" type="text" autocomplete="name" value="Dr. Joseph Teguh Santoso, M.Kom"><div class="msg warn" id="dupMsg" role="alert" hidden></div></div>
             <div class="field"><label class="l" for="nOrg">Instansi / perusahaan <span class="opt">(opsional)</span></label><input id="nOrg" type="text" autocomplete="organization" value="Universitas STEKOM"></div>
             <div class="field"><label class="l" for="nMail">Email <span class="opt">(opsional)</span></label><input id="nMail" type="email" autocomplete="email" inputmode="email"></div>
             <div class="field row2">
@@ -608,6 +638,7 @@ table.hist tr:last-child td{border-bottom:none}
               <button class="btn btn--ghost btn--sm" id="btnForget" type="button">Ganti identitas</button>
             </div>
             <p class="hint">Cadangan (.zip) berisi file .p12 untuk dipakai di perangkat lain dan file .cer yang bisa dibagikan agar penerima mempercayai tanda tangan Anda.</p>
+            <div class="msg warn" id="idReg" role="status" hidden></div>
             <div class="msg" id="idMsg2" role="status" hidden></div>
             <div class="idhelp" id="idHelp" hidden><b>Lupa kata sandi sertifikat?</b> Kata sandi ini tidak bisa dipulihkan siapa pun. Klik <b>Ganti identitas</b> lalu buat sertifikat baru. PDF yang sudah ditandatangani dengan sertifikat lama tetap sah. Bila Anda punya cadangan .zip, kata sandinya sama dengan yang Anda buat dulu.</div>
           </div>
@@ -871,6 +902,19 @@ table.hist tr:last-child td{border-bottom:none}
     </div>
   </section>
   <!-- ================= RIWAYAT ================= -->
+  <section class="panel" id="pIds" role="tabpanel" aria-labelledby="tabIds" hidden>
+    <div class="intro"><div><h1>Kelola <em>identitas penanda tangan.</em></h1><p>Daftar sertifikat penanda tangan yang terdaftar di server STEKOM dan bisa dipakai di semua perangkat dengan kata sandi sertifikatnya masing-masing. Satu orang hanya boleh punya satu identitas: nama yang sama atau mirip tidak bisa dibuat lagi.</p></div></div>
+    <div class="syncbar"><span class="badge2 badge2--warn" id="iSync">Memeriksa…</span><span id="iSyncT"></span><button class="btn btn--sm" id="iSyncBtn" type="button"><svg aria-hidden="true"><use href="#i-sync"/></svg>Muat ulang</button></div>
+    <div class="card pad">
+      <div class="hbar">
+        <label class="sr" for="iQ">Cari identitas</label>
+        <input id="iQ" type="search" placeholder="Cari nama, jabatan, atau sidik sertifikat" autocomplete="off">
+      </div>
+      <div class="hwrap" id="iList"></div>
+      <p class="fieldhint">Menghapus identitas hanya mencabutnya dari daftar dan dari semua perangkat. PDF yang sudah ditandatangani dengan sertifikat itu tetap sah. Setelah dihapus, nama tersebut boleh dibuat lagi. Kata sandi sertifikat tidak pernah dikirim ke server; yang disimpan hanya file .p12 yang terkunci kata sandi itu.</p>
+    </div>
+  </section>
+
   <section class="panel" id="pHist" role="tabpanel" aria-labelledby="tabHist" hidden>
     <div class="intro"><div><h1>Riwayat <em>pembuatan segel.</em></h1><p>Catatan dokumen yang pernah disegel, tersimpan di server STEKOM dan tampil sama di semua perangkat yang masuk dengan akun ini. File PDF tidak disimpan atau dikirim, hanya keterangan dan sidik SHA-256 hasilnya.</p></div></div>
     <div class="stats" id="hStats" aria-live="polite"></div>
@@ -1568,14 +1612,16 @@ let theme=lsGet(TH_KEY)||"auto"; applyTheme(theme);
 $("btnTheme").addEventListener("click",()=>{ const i=THEMES.findIndex(x=>x[0]===theme); theme=THEMES[(i+1)%THEMES.length][0]; lsSet(theme,TH_KEY); applyTheme(theme); });
 
 /* ---------- tab ---------- */
-const tabs=[["tabHome","pHome"],["tabSign","pSign"],["tabVerify","pVerify"],["tabHist","pHist"]];
-const TAB_NAME={tabHome:"Ringkasan",tabSign:"Tanda tangani PDF",tabVerify:"Periksa keaslian",tabHist:"Riwayat segel"};
+const tabs=[["tabHome","pHome"],["tabSign","pSign"],["tabVerify","pVerify"],["tabHist","pHist"],["tabIds","pIds"]];
+const TAB_NAME={tabHome:"Ringkasan",tabSign:"Tanda tangani PDF",tabVerify:"Periksa keaslian",tabHist:"Riwayat segel",tabIds:"Kelola identitas"};
 function selectTab(t){
   tabs.forEach(([t2,p2])=>{ const on=t2===t; $(t2).setAttribute("aria-selected",on?"true":"false"); $(t2).tabIndex=on?0:-1; $(p2).hidden=!on; });
   if(t==="tabSign" && doc) layoutPage();
   if(t==="tabHist") renderHistory();
   if(t==="tabHome") renderHome();
   if(t==="tabHist"||t==="tabHome") syncPull(false);
+  if(t==="tabIds"){ renderRegistry(); idPull(true); }
+  if(t==="tabSign") idPull(false);
   $("crumbT").textContent=TAB_NAME[t]; window.scrollTo(0,0);
 }
 document.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>selectTab(b.dataset.go)));
@@ -1611,7 +1657,7 @@ $("gateForm").addEventListener("submit", async e=>{
   failN=0; $("gPass").value=""; hide(m);
   syncToken=await sha256Hex("sync|"+p);
   try{ sessionStorage.setItem(AUTH_KEY,"1"); sessionStorage.setItem(SYNC_KEY,syncToken); }catch(_){}
-  document.body.classList.remove("locked"); syncPull(true); renderHome();
+  document.body.classList.remove("locked"); syncPull(true); idPull(true); renderHome();
   if(doc) layoutPage(); $("main").focus({preventScroll:true});
 });
 $("btnLogout").addEventListener("click",()=>{
@@ -1666,8 +1712,8 @@ function paintSync(){
   const b=$("hSyncBtn"); if(b) b.disabled=syncState==="busy";
 }
 $("hSyncBtn").addEventListener("click",()=>syncPull(true));
-document.addEventListener("visibilitychange",()=>{ if(!document.hidden) syncPull(false); });
-window.addEventListener("online",()=>syncPull(true));
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ syncPull(false); idPull(false); } });
+window.addEventListener("online",()=>{ syncPull(true); idPull(true); });
 
 function renderHome(){
   const all=histGet(), now=new Date();
@@ -1726,6 +1772,120 @@ $("hCsv").addEventListener("click", async ()=>{
   try{ await saveFile("riwayat-segel-stekom.csv", new Blob(["﻿"+lines.join("\r\n")],{type:"text/csv"})); }catch(err){ alert(err.message); }
 });
 
+
+/* ---------- identitas terdaftar (server STEKOM, semua perangkat) ----------
+   Server menyimpan file .p12 yang terkunci kata sandi sertifikat; kata sandinya tidak pernah dikirim.
+   Satu orang satu identitas: nama sama/mirip ditolak (pemeriksaan sama di server/server.js). */
+const ID_KEY="segel.identities.v1";
+let registry=(()=>{ const r=lsGet(ID_KEY); return Array.isArray(r)?r:[]; })();
+let idState="idle", idBusy=false, idLast=0, regSel=null;
+const NAME_PREFIX=new Set(["dr","drs","dra","ir","prof","h","hj","kh","ns","apt","drg","ust","tn","ny","sdr","sdri","bpk","bapak","ibu"]);
+function nameKey(s){
+  const t=String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().split(",")[0];
+  return t.split(/\s+/).filter(w=>w&&!w.includes(".")).map(w=>w.replace(/[^a-z]/g,"")).filter(w=>w&&!NAME_PREFIX.has(w)).join(" ");
+}
+function lev(a,b){ const m=a.length,n=b.length; if(!m) return n; if(!n) return m; let p=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){ const c=[i]; for(let j=1;j<=n;j++) c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); p=c; } return p[n]; }
+function similarName(a,b){
+  if(!a||!b) return false; if(a===b) return true;
+  const A=a.split(" "), B=b.split(" "), [sh,lo]=A.length<=B.length?[A,B]:[B,A];
+  if(sh.length>=2 && sh.every(w=>lo.includes(w))) return true;
+  return lev(a,b)<=Math.floor(Math.max(a.length,b.length)*0.15);
+}
+function findSimilar(name, fp){ const k=nameKey(name); return registry.find(r=>r.fp!==fp && similarName(k,nameKey(r.name)))||null; }
+function setRegistry(list){ registry=Array.isArray(list)?list:[]; lsSet(registry,ID_KEY); }
+async function idCall(body){
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),20000);
+  try{
+    const r=await fetch(SYNC_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(Object.assign({token:syncToken},body)),signal:ctl.signal});
+    const j=await r.json(); if(!j.ok){ const e=new Error(j.error||"gagal"); e.match=j.match; throw e; } return j.identities;
+  } finally { clearTimeout(to); }
+}
+async function registerIdentity(){
+  if(!identity || identity.registered || !syncToken) return;
+  try{
+    setRegistry(await idCall({action:"id_add",identity:{fp:identity.fp,name:identity.name,title:identity.title,org:identity.org,email:identity.email,p12b64:identity.p12b64}}));
+    identity.registered=true; delete identity.dupOf; idState="ok";
+  }catch(e){ if(e.message==="duplicate"&&e.match) identity.dupOf=e.match.name; else idState=e.message==="unauthorized"?"auth":"err"; }
+  lsSet(identity); renderIdentity(); renderRegistry();
+}
+async function idPull(force){
+  if(!syncToken || idBusy) return;
+  if(!force && Date.now()-idLast<15000) return;
+  idBusy=true; idState="busy"; paintIdSync();
+  try{
+    setRegistry(await idCall({action:"id_list"})); idState="ok"; idLast=Date.now();
+    if(identity){
+      if(registry.some(r=>r.fp===identity.fp)){ if(!identity.registered){ identity.registered=true; delete identity.dupOf; lsSet(identity); } }
+      else if(identity.registered){ // dihapus lewat Kelola identitas di perangkat lain
+        const nm=identity.name; identity=null; unlocked=null; lsDel(); renderIdentity();
+        show($("idMsg"),"warn","Identitas <b>"+esc(nm)+"</b> sudah dihapus dari daftar identitas terdaftar, jadi dikeluarkan juga dari perangkat ini.");
+      }
+    }
+  }catch(e){ idState=e.message==="unauthorized"?"auth":"err"; }
+  finally{ idBusy=false; }
+  if(identity && !identity.registered && idState==="ok") await registerIdentity();
+  paintIdSync(); renderIdentity(); renderRegistry(); checkDup();
+}
+function paintIdSync(){
+  const m={idle:["Belum tersambung","warn"],busy:["Memuat…","warn"],ok:["Tersinkron","ok"],err:["Mode lokal","bad"],auth:["Token ditolak","bad"]}[idState]||["","warn"];
+  const el=$("iSync"); el.textContent=m[0]; el.className="badge2"+(m[1]==="ok"?"":m[1]==="bad"?" badge2--bad":" badge2--warn");
+  $("iSyncT").textContent=idState==="ok"?registry.length+" identitas terdaftar, sama di semua perangkat.":idState==="err"?"Server tidak terjangkau. Menampilkan daftar terakhir yang tersimpan di perangkat ini.":idState==="auth"?"Keluar lalu masuk lagi untuk memperbarui akses.":"";
+  $("iSyncBtn").disabled=idState==="busy";
+}
+function regMeta(r){ return [[r.title,r.org].filter(Boolean).join(" "), r.email].filter(Boolean).join(" — ")||"Sertifikat pribadi"; }
+function renderRegistry(){
+  // pemilih di langkah 1
+  $("regBox").hidden=$("regOr").hidden=!registry.length;
+  if(regSel && !registry.some(r=>r.fp===regSel)) regSel=null;
+  $("regList").innerHTML=registry.map(r=>`<li><button class="regitem" type="button" data-fp="${esc(r.fp)}" aria-pressed="${r.fp===regSel}"><span class="av" aria-hidden="true">${esc(initials(r.name))}</span><span><b>${esc(r.name)}</b><span class="s">${esc(regMeta(r))}</span><span class="s mono">Sidik ${esc(r.fp.slice(0,23))}…</span></span></button></li>`).join("");
+  const sel=registry.find(r=>r.fp===regSel); $("regUse").hidden=!sel; if(sel) $("rName").textContent="— "+sel.name;
+  // halaman Kelola identitas
+  const q=$("iQ").value.trim().toLowerCase();
+  const rows=q?registry.filter(r=>[r.name,r.title,r.org,r.email,r.fp].join(" ").toLowerCase().includes(q)):registry;
+  const box=$("iList");
+  if(!registry.length){ box.innerHTML='<div class="empty"><svg aria-hidden="true"><use href="#i-user"/></svg>Belum ada identitas terdaftar. Identitas yang dibuat atau diimpor di menu Tanda tangani PDF akan muncul di sini.</div>'; return; }
+  if(!rows.length){ box.innerHTML='<div class="empty"><svg aria-hidden="true"><use href="#i-user"/></svg>Tidak ada identitas yang cocok dengan pencarian.</div>'; return; }
+  box.innerHTML='<table class="hist idt"><thead><tr><th scope="col">Penanda tangan</th><th scope="col" class="c-date">Terdaftar</th><th scope="col"><span class="sr">Aksi</span></th></tr></thead><tbody>'+
+    rows.map(r=>`<tr><td><span class="fn">${esc(r.name)}</span><span class="sub">${esc(regMeta(r))}</span><span class="sub mono fpx">Sidik SHA-256 ${esc(r.fp)}</span>${identity&&identity.fp===r.fp?'<span class="tag">Dipakai di perangkat ini</span>':""}</td>
+      <td class="c-date">${r.created?esc(Core.tanggalID(new Date(r.created))):"-"}</td>
+      <td><button class="btn btn--sm btn--danger" type="button" data-delid="${esc(r.fp)}" aria-label="Hapus identitas ${esc(r.name)}"><svg aria-hidden="true"><use href="#i-trash"/></svg>Hapus</button></td></tr>`).join("")+'</tbody></table>';
+}
+$("iQ").addEventListener("input",renderRegistry);
+$("iSyncBtn").addEventListener("click",()=>idPull(true));
+$("iList").addEventListener("click",async e=>{ const b=e.target.closest("[data-delid]"); if(!b) return;
+  const r=registry.find(x=>x.fp===b.dataset.delid); if(!r) return;
+  if(!confirm("Hapus identitas \""+r.name+"\" dari daftar terdaftar?\n\nIdentitas ini akan dikeluarkan dari semua perangkat dan tidak bisa dipakai lagi kecuali seseorang punya cadangan .zip-nya. PDF yang sudah ditandatangani tetap sah.")) return;
+  b.disabled=true;
+  try{ setRegistry(await idCall({action:"id_delete",fp:r.fp})); }
+  catch(err){ b.disabled=false; return alert("Tidak bisa menghapus: server tidak terjangkau. Coba lagi saat tersambung."); }
+  if(identity && identity.fp===r.fp){ identity=null; unlocked=null; lsDel(); renderIdentity(); }
+  renderRegistry(); checkDup();
+});
+$("regList").addEventListener("click",e=>{ const b=e.target.closest("[data-fp]"); if(!b) return;
+  regSel=regSel===b.dataset.fp?null:b.dataset.fp; hide($("regMsg")); renderRegistry(); if(regSel) $("rPw").focus(); });
+$("btnRegUse").addEventListener("click",()=>{
+  const r=registry.find(x=>x.fp===regSel); if(!r) return;
+  try{
+    const der=binFromB64(r.p12b64), id=Core.openIdentity(der,$("rPw").value);
+    if(Core.fingerprint(id.cert)!==r.fp) throw new Error("Sertifikat tidak cocok dengan data terdaftar.");
+    adoptP12(der,$("rPw").value); identity.registered=true; lsSet(identity);
+    $("rPw").value=""; regSel=null; hide($("regMsg")); hide($("idMsg")); renderIdentity(); renderRegistry();
+  }catch(err){
+    show($("regMsg"),"bad",/Invalid password|MAC|decrypt|PKCS#12/i.test(err.message)||!err.message?"Kata sandi salah. Masukkan <b>kata sandi sertifikat</b> yang dibuat saat identitas ini didaftarkan (bukan password login).":esc(err.message));
+    $("rPw").select();
+  }
+});
+$("rPw").addEventListener("keydown",e=>{ if(e.key==="Enter") $("btnRegUse").click(); });
+function checkDup(){
+  const m=$("dupMsg"); if(identity){ m.hidden=true; return null; }
+  const hit=findSimilar($("nName").value.trim(),null);
+  if(!hit){ m.hidden=true; return null; }
+  m.innerHTML="Nama ini sudah terdaftar sebagai <b>"+esc(hit.name)+"</b>. Identitas tidak boleh dibuat dua kali: pilih nama tersebut di daftar di atas lalu masukkan kata sandinya.";
+  m.hidden=false; return hit;
+}
+$("nName").addEventListener("input",debounce(checkDup,250));
+
 /* ---------- identitas ---------- */
 function renderIdentity(){
   if(!identity){ $("idNone").hidden=false; $("idHave").hidden=true; fillFooter($("nName").value.trim(),$("nOrg").value.trim()); queuePreview(); return; }
@@ -1735,6 +1895,8 @@ function renderIdentity(){
   $("idMeta").textContent=[[identity.title, identity.org].filter(Boolean).join(" "), identity.email].filter(Boolean).join(" — ") || "Sertifikat pribadi";
   $("idFp").textContent="Sidik SHA-256: "+identity.fp;
   $("unlockBox").hidden=!!unlocked; $("unlocked").hidden=!unlocked;
+  const rg=$("idReg"); rg.hidden=!!identity.registered;
+  if(!identity.registered) rg.innerHTML=identity.dupOf?"<b>Tidak didaftarkan ke server:</b> namanya mirip dengan identitas terdaftar <b>"+esc(identity.dupOf)+"</b>. Identitas ini hanya ada di perangkat ini. Klik <b>Ganti identitas</b> lalu pilih nama tersebut dari daftar.":"<b>Belum tersimpan di server.</b> Identitas akan didaftarkan otomatis saat tersambung, agar bisa dipakai di perangkat lain.";
   fillFooter(identity.name, identity.org);
   queuePreview(); renderHome();
 }
@@ -1763,6 +1925,9 @@ async function createFromForm(){
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ show(m,"bad","Format email belum benar, contoh: nama@instansi.ac.id. Atau kosongkan saja."); $("nMail").focus(); return false; }
   if(pw.length<6){ show(m,"bad","Buat kata sandi sertifikat, minimal 6 karakter."); $("nPw").focus(); return false; }
   if(pw!==pw2){ show(m,"bad","Kedua kata sandi tidak sama. Ketik ulang di kolom \"Ulangi\"."); $("nPw2").focus(); return false; }
+  if(syncToken) await idPull(true);
+  const dup=checkDup();
+  if(dup){ show(m,"bad","Identitas <b>"+esc(dup.name)+"</b> sudah terdaftar. Pakai identitas itu dengan kata sandinya, tidak perlu membuat baru."); regSel=dup.fp; renderRegistry(); $("rPw").focus(); return false; }
   if(!window.crypto || !crypto.subtle){ show(m,"bad","Browser ini tidak mendukung pembuatan kunci. Coba Chrome, Edge, Firefox, atau Safari terbaru."); return false; }
   const b=$("btnCreate"); b.disabled=true; show(m,"warn",'<span class="spin"></span>Membuat kunci dan sertifikat…');
   try{
@@ -1770,7 +1935,8 @@ async function createFromForm(){
     const r=await Core.createIdentity({name,org,email,title:$("oJab").value.trim(),password:pw}, crypto.subtle);
     adoptP12(r.p12Der, pw);
     $("nPw").value=$("nPw2").value=""; hide(m);
-    show($("idMsg2"),"ok","<b>Sertifikat dibuat.</b> Unduh cadangannya sekarang — tanpa cadangan, identitas ini hilang bila data browser dihapus.");
+    await registerIdentity();
+    show($("idMsg2"),"ok",identity.registered?"<b>Sertifikat dibuat dan didaftarkan.</b> Identitas ini sekarang muncul di semua perangkat; cukup masukkan kata sandinya. Simpan juga cadangannya.":"<b>Sertifikat dibuat.</b> Unduh cadangannya sekarang — tanpa cadangan, identitas ini hilang bila data browser dihapus.");
     return true;
   }catch(e){ show(m,"bad","Gagal membuat sertifikat: "+esc(e.message)); return false; }
   finally{ b.disabled=false; }
@@ -1791,8 +1957,11 @@ $("fImport").addEventListener("change", async e=>{
     }
     const pw=prompt("Masukkan kata sandi sertifikat (yang dibuat saat sertifikat ini dibuat):");
     if(pw===null) return;
-    adoptP12(Core.u8ToBinary(buf), pw);
-    hide(m);
+    const der=Core.u8ToBinary(buf), opened=Core.openIdentity(der, pw), fp=Core.fingerprint(opened.cert);
+    const dup=!registry.some(r=>r.fp===fp) && findSimilar(Core.cn(opened.cert), fp);
+    if(dup){ regSel=dup.fp; renderRegistry(); return show(m,"bad","Identitas <b>"+esc(dup.name)+"</b> sudah terdaftar dengan sertifikat lain. Pakai identitas itu dari daftar di atas, atau hapus dulu lewat menu <b>Kelola identitas</b> bila memang ingin menggantinya."); }
+    adoptP12(der, pw);
+    hide(m); await registerIdentity();
   }catch(err){
     const msg=/Invalid password|MAC|decrypt/i.test(err.message) ? "Kata sandi salah." : err.message;
     show(m,"bad","Tidak bisa membuka sertifikat: "+esc(msg)+(msg==="Kata sandi salah."?" Pakai kata sandi yang Anda buat sendiri saat membuat sertifikat itu.":""));
@@ -1838,8 +2007,8 @@ $("btnExport").addEventListener("click", async ()=>{
 });
 
 $("btnForget").addEventListener("click", ()=>{
-  if(!confirm("Hapus identitas ini dari browser? Pastikan Anda sudah menyimpan cadangannya.")) return;
-  identity=null; unlocked=null; lsDel(); delete $("oFooterText").dataset.touched; renderIdentity();
+  if(!confirm(identity.registered?"Keluarkan identitas ini dari perangkat ini?\n\nIdentitas tetap terdaftar di server dan bisa dipakai lagi dengan memilih namanya lalu memasukkan kata sandi sertifikat. Untuk menghapusnya permanen, pakai menu Kelola identitas.":"Hapus identitas ini dari browser? Identitas ini belum terdaftar di server, jadi pastikan Anda sudah menyimpan cadangannya.")) return;
+  identity=null; unlocked=null; lsDel(); delete $("oFooterText").dataset.touched; renderIdentity(); renderRegistry(); checkDup();
 });
 
 /* =====================================================================
@@ -2445,7 +2614,7 @@ function explainHTML(){
 }
 
 /* ---------- mulai ---------- */
-identity=lsGet(); renderIdentity(); updateSummary(); renderStampPreview(); paintSync(); renderHome(); if(!document.body.classList.contains("locked")) syncPull(true);
+identity=lsGet(); renderIdentity(); renderRegistry(); updateSummary(); renderStampPreview(); paintSync(); renderHome(); if(!document.body.classList.contains("locked")){ syncPull(true); idPull(true); }
 })();
 </script>
 </body>

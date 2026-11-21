@@ -2,7 +2,10 @@
 /**
  * API riwayat Segel Digital (Universitas STEKOM) — penyimpanan di PostgreSQL.
  * Kontrak sama dengan versi Apps Script: POST JSON { token, action, ... } -> { ok, records }
- * action: list | add | delete | clear. Hanya metadata dokumen; PDF dan kunci tidak pernah dikirim.
+ * action riwayat  : list | add | delete | clear -> { ok, records }. Hanya metadata dokumen; PDF tidak pernah dikirim.
+ * action identitas: id_list | id_add | id_delete -> { ok, identities }. Yang disimpan hanya file .p12 yang
+ *   sudah terkunci kata sandi sertifikat (dibuat di browser). Kata sandinya tidak pernah dikirim ke server.
+ *   id_add menolak nama yang sama/mirip dengan identitas lain -> { ok:false, error:'duplicate', match }.
  *
  * Env:
  *   DATABASE_URL            atau PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE (disarankan, nama DB boleh berspasi)
@@ -50,7 +53,46 @@ CREATE TABLE IF NOT EXISTS segel_riwayat (
   sha256     text NOT NULL DEFAULT '',
   dibuat     timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS segel_riwayat_waktu_idx ON segel_riwayat (waktu DESC);`;
+CREATE INDEX IF NOT EXISTS segel_riwayat_waktu_idx ON segel_riwayat (waktu DESC);
+CREATE TABLE IF NOT EXISTS segel_identitas (
+  fp      text PRIMARY KEY,
+  nama    text NOT NULL,
+  kunci   text NOT NULL DEFAULT '',
+  jabatan text NOT NULL DEFAULT '',
+  org     text NOT NULL DEFAULT '',
+  email   text NOT NULL DEFAULT '',
+  p12     text NOT NULL,
+  dibuat  timestamptz NOT NULL DEFAULT now()
+);`;
+
+/* Kemiripan nama penanda tangan. Gelar (Dr., Prof., S.Kom, M.Kom, ...) dan tanda baca diabaikan.
+   Mirip bila: inti nama sama, semua kata nama yang lebih pendek (>=2 kata) ada di nama lain,
+   atau jarak edit <= 15% panjang (salah ketik). Logika yang sama ada di index.html. */
+const PREFIX = new Set(['dr', 'drs', 'dra', 'ir', 'prof', 'h', 'hj', 'kh', 'ns', 'apt', 'drg', 'ust', 'tn', 'ny', 'sdr', 'sdri', 'bpk', 'bapak', 'ibu']);
+function nameKey(s) {
+  let t = String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  t = t.split(',')[0];
+  const words = t.split(/\s+/).filter(w => w && !w.includes('.')).map(w => w.replace(/[^a-z]/g, '')).filter(w => w && !PREFIX.has(w));
+  return words.join(' ');
+}
+function lev(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+function similar(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const A = a.split(' '), B = b.split(' ');
+  const [s, l] = A.length <= B.length ? [A, B] : [B, A];
+  if (s.length >= 2 && s.every(w => l.includes(w))) return true;
+  return lev(a, b) <= Math.floor(Math.max(a.length, b.length) * 0.15);
+}
 
 const str = (v, n = 300) => (typeof v === 'string' ? v.slice(0, n) : '');
 const int = v => { const x = Math.round(Number(v)); return Number.isFinite(x) && x >= 0 && x < 2 ** 40 ? x : 0; };
@@ -69,7 +111,34 @@ async function list() {
     signer: r.penanda, nidn: r.nidn, jabatan: r.jabatan, layers: r.lapisan, fp: r.sidik_cert, sha: r.sha256 }));
 }
 
+async function idList() {
+  const { rows } = await pool.query('SELECT fp, nama, jabatan, org, email, p12, dibuat FROM segel_identitas ORDER BY nama');
+  return rows.map(r => ({ fp: r.fp, name: r.nama, title: r.jabatan, org: r.org, email: r.email, p12b64: r.p12, created: r.dibuat.toISOString() }));
+}
+
+async function idAdd(r) {
+  const fp = str(r && r.fp, 100).toUpperCase(), name = str(r && r.name, 200).trim(), p12 = str(r && r.p12b64, 40000);
+  if (!/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/.test(fp) || name.length < 3 || !/^[A-Za-z0-9+/]+=*$/.test(p12) || p12.length < 200)
+    throw Object.assign(new Error('bad_identity'), { code: 400 });
+  const key = nameKey(name);
+  const { rows } = await pool.query('SELECT fp, nama, kunci FROM segel_identitas');
+  if (rows.some(x => x.fp === fp)) return idList();
+  const hit = rows.find(x => similar(key, x.kunci || nameKey(x.nama)));
+  if (hit) throw Object.assign(new Error('duplicate'), { code: 409, match: { fp: hit.fp, name: hit.nama } });
+  await pool.query(`INSERT INTO segel_identitas (fp, nama, kunci, jabatan, org, email, p12) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (fp) DO NOTHING`,
+    [fp, name, key, str(r.title, 200), str(r.org, 200), str(r.email, 200), p12]);
+  return idList();
+}
+
 async function handle(req) {
+  const act = req.action;
+  if (act === 'id_list') return { identities: await idList() };
+  if (act === 'id_add') return { identities: await idAdd(req.identity) };
+  if (act === 'id_delete') { await pool.query('DELETE FROM segel_identitas WHERE fp = $1', [str(req.fp, 100)]); return { identities: await idList() }; }
+  return { records: await handleHist(req) };
+}
+
+async function handleHist(req) {
   const act = req.action;
   if (act === 'list') return list();
   if (act === 'add') {
@@ -131,8 +200,10 @@ const server = http.createServer((req, res) => {
     let j; try { j = JSON.parse(body); } catch (e) { return send(400, { ok: false, error: 'bad_request' }); }
     if (limited(ip)) return send(429, { ok: false, error: 'rate_limited' });
     if (!j || !tokenOk(j.token)) { noteFail(ip); return send(401, { ok: false, error: 'unauthorized' }); }
-    try { send(200, { ok: true, records: await handle(j) }); }
-    catch (e) { if (e.code === 400) return send(400, { ok: false, error: e.message }); console.error(e); send(500, { ok: false, error: 'server_error' }); }
+    try { send(200, Object.assign({ ok: true }, await handle(j))); }
+    catch (e) {
+      if (e.code === 409) return send(409, { ok: false, error: e.message, match: e.match });
+      if (e.code === 400) return send(400, { ok: false, error: e.message }); console.error(e); send(500, { ok: false, error: 'server_error' }); }
   });
 });
 

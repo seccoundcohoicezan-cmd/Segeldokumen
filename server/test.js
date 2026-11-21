@@ -19,5 +19,24 @@ const ok = (c, m) => { if (!c) { console.error('GAGAL:', m); process.exitCode = 
   let r = await fetch(U, { method: 'OPTIONS', headers: { Origin: 'https://segeldokumen.vercel.app' } }); ok(r.status === 204 && r.headers.get('access-control-allow-origin') === 'https://segeldokumen.vercel.app', 'CORS preflight origin diizinkan');
   r = await fetch(U, { method: 'POST', headers: { Origin: 'https://evil.example' }, body: '{}' }); ok(r.status === 403, 'origin asing ditolak');
   [s, j] = await post({ token: T, action: 'clear' }); ok(j.records.length === 0, 'clear');
+
+  // identitas penanda tangan
+  const fpA = Array(32).fill('AB').join(':'), fpB = Array(32).fill('CD').join(':'), fpC = Array(32).fill('EF').join(':');
+  const P12 = 'MIIK' + 'A'.repeat(400);
+  [s, j] = await post({ token: T, action: 'id_list' }); for (const x of j.identities) await post({ token: T, action: 'id_delete', fp: x.fp });
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpA, name: 'Dr. Fauzan Daffa, M.Kom', title: 'Rektor', org: 'Universitas STEKOM', p12b64: P12 } });
+  ok(s === 200 && j.identities.length === 1 && j.identities[0].p12b64 === P12 && j.identities[0].name === 'Dr. Fauzan Daffa, M.Kom', 'id_add menyimpan identitas + p12');
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpA, name: 'Dr. Fauzan Daffa, M.Kom', p12b64: P12 } }); ok(s === 200 && j.identities.length === 1, 'id_add sidik sama = idempoten');
+  for (const nm of ['Fauzan Daffa', 'FAUZAN DAFFA S.Kom', 'Fauzan Dafa', 'Prof. Dr. Fauzan Daffa', 'Fauzan Daffa Putra']) {
+    [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpB, name: nm, p12b64: P12 } });
+    ok(s === 409 && j.error === 'duplicate' && j.match.fp === fpA, `nama mirip ditolak: "${nm}"`);
+  }
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpB, name: 'Dr. Joseph Teguh Santoso, M.Kom', p12b64: P12 } }); ok(s === 200 && j.identities.length === 2, 'nama berbeda diterima');
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: 'xx', name: 'Siapa', p12b64: P12 } }); ok(s === 400, 'sidik tidak valid ditolak');
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpC, name: 'Orang Lain', p12b64: 'bukan base64!' } }); ok(s === 400, 'p12 tidak valid ditolak');
+  [s, j] = await post({ token: 'x'.repeat(64), action: 'id_list' }); ok(s === 401, 'id_list tanpa token ditolak');
+  [s, j] = await post({ token: T, action: 'id_delete', fp: fpA }); ok(j.identities.length === 1 && j.identities[0].fp === fpB, 'id_delete');
+  [s, j] = await post({ token: T, action: 'id_add', identity: { fp: fpC, name: 'Fauzan Daffa', p12b64: P12 } }); ok(s === 200 && j.identities.length === 2, 'setelah dihapus, nama boleh dibuat lagi');
+  for (const x of j.identities) await post({ token: T, action: 'id_delete', fp: x.fp });
   p.kill();
 })().catch(e => { console.error(e); process.exit(1); });
